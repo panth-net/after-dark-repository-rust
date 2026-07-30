@@ -1,0 +1,15 @@
+[package]
+name = "ad-toolbox"
+description = "Macintosh Toolbox high-level emulation for the After Dark runtime."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ad-memory = { path = "../ad-memory" }
+ad-m68k = { path = "../ad-m68k" }
+ad-resource = { path = "../ad-resource" }
+
+[lints]
+workspace = true

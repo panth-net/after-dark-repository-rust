@@ -1,0 +1,47 @@
+# --- Original media, firmware, and third-party SDK archives: never committed ---
+# Apple ROMs, Berkeley Systems' modules and SDKs, and disk images are someone
+# else's copyrighted material. The whole folder is a local-only cache so they
+# don't have to be re-downloaded or re-extracted — see reference/README.md and
+# the main README's "Reference materials" section for how to reconstitute it.
+/reference/
+*.ROM
+Old_World_Mac_Roms.zip
+New_World_Mac_Roms.zip
+
+# The source disk image and anything extracted from it.
+AfterDark-original.img
+*.img
+!fixtures/**/*.img
+
+# Extracted original assets and generated module packs. No exceptions: an
+# earlier version of this file whitelisted `dist/**/*.rsrc` so the packaged app
+# could carry a playable library, which committed 55 Berkeley Systems modules
+# and Apple's fonts to a public repository. The app now imports them from the
+# user's own disk at first launch instead.
+/modules/
+**/forks/
+*.rsrc
+
+# Oracle captures (large, regenerable; commit hashes not frames).
+/tests/oracle/captures/
+
+# --- Build output ---
+# dist/ is NOT ignored. `dist/After Dark Player.app` and its Lunatic Fringe
+# counterpart are the downloads the README links to, built by
+# tools/package/make_app.sh. They are only the binary, its plist and an icon —
+# no modules and no fonts, which is what made committing it a problem before.
+/target/
+node_modules/
+.DS_Store
+
+# --- Scratch ---
+*.pyc
+__pycache__/
+
+# repomix generates a full-repo dump; useful locally, never in history
+repomix-output.xml
+trapscan.json
+
+# Disc images: Berkeley Systems' software, not this project's.
+*.iso
+*.iso.zip

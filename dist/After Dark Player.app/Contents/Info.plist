@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>              <string>After Dark Player</string>
+  <key>CFBundleDisplayName</key>       <string>After Dark Player</string>
+  <key>CFBundleExecutable</key>        <string>ad-player</string>
+  <key>CFBundleIconFile</key>          <string>after-dark</string>
+  <key>CFBundleIdentifier</key>        <string>net.panth.afterdark</string>
+  <key>CFBundlePackageType</key>       <string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <key>CFBundleVersion</key>           <string>0.1.0</string>
+  <key>LSMinimumSystemVersion</key>    <string>11.0</string>
+  <!-- A normal windowed application: it needs a Dock icon and a menu bar to be
+       clickable and focusable, which an agent/background app would not get. -->
+  <key>LSUIElement</key>               <false/>
+  <key>NSHighResolutionCapable</key>   <true/>
+  <!-- No app sandbox is requested, and that is deliberate: a sandboxed app gets
+       its own redirected ~/Library/Application Support, which would give each
+       of these two bundles a private library and a private high score table. -->
+</dict>
+</plist>

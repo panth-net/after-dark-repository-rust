@@ -1,0 +1,18 @@
+[package]
+name = "ad-player"
+description = "Windowed, playable host for After Dark modules: real keyboard input and audio."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ad-host-v2 = { path = "../ad-host-v2" }
+ad-keystate = { path = "../ad-keystate" }
+ad-resource = { path = "../ad-resource" }
+ad-runtime = { path = "../ad-runtime", features = ["audio"] }
+ad-toolbox = { path = "../ad-toolbox" }
+minifb = "0.28"
+
+[lints]
+workspace = true

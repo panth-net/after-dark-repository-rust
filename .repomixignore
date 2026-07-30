@@ -1,0 +1,35 @@
+# --- Build output ---
+/target/
+node_modules/
+dist/
+
+# --- Repomix output itself ---
+repomix-output.xml
+
+# --- Someone else's copyrighted material: never goes into a dump ---
+# The whole of reference/, not just reference/private/ — it is a local-only
+# cache of Berkeley Systems' SDKs and Apple's firmware, and .gitignore already
+# excludes it wholesale. Disk images belong here for the same reason: at 15 MB
+# an original After Dark image sits under the 50 MB maxFileSize and would
+# otherwise be swept into the dump whole.
+/reference/
+*.ROM
+*.img
+*.iso
+*.iso.zip
+
+# --- Extracted module files (large binary resource forks) ---
+/modules/
+*.rsrc
+!lunatic_fringe_codex_bundle/reference/*.rsrc
+
+# --- Forks ---
+**/forks/
+
+# --- Oracle captures (large, regenerable) ---
+/tests/oracle/captures/
+
+# --- OS / editor noise ---
+.DS_Store
+*.pyc
+__pycache__/

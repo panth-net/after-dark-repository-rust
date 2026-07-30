@@ -1,0 +1,203 @@
+# After Dark Rust Player
+
+[![CI](https://github.com/panth-net/after-dark-repository-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/panth-net/after-dark-repository-rust/actions/workflows/ci.yml)
+
+The original 1991 After Dark screensaver modules, running on modern macOS, Windows, and Linux. This is a Rust implementation to run the original disks in an emulator.
+
+After Dark is sadly abandonware: Berkeley Systems is gone and the original full After Dark suite is no longer commercially available. We wanted to try setting up a Rust implementation to emulate the original disks, and hope it's helpful to anyone who finds it.
+
+![Four After Dark modules running: the Lunatic Fringe title screen, Mowin' Man,
+Lunatic Fringe gameplay with its damage-control panel, and Flying
+Toasters](frames.webp)
+
+## Just want to play it?
+
+Mac users:
+
+1. **[Download the ZIP](https://github.com/panth-net/after-dark-repository-rust/archive/refs/heads/master.zip)**,
+   unzip it, open the `dist/` folder inside, and drag **After Dark Player.app**
+   into Applications.
+2. Right-click it and choose **Open** — macOS will warn that the developer
+   isn't verified; click **Open** anyway. You only need to do this once. You may
+   need to visit *System Settings → Privacy & Security* to allow it to run.
+3. The first launch asks for an original After Dark disk image and offers to
+   open the page to download one. Pick the downloaded file and it unpacks
+   itself. It never asks again, even if you replace the app later.
+
+There's a second icon in `dist/`: **Lunatic Fringe Player.app** opens the game
+straight away instead of the module list. Drag it across too if that's the one
+you're here for — it's the same app underneath, sharing one library and one high
+score table with the other, so it doesn't matter which one you launch.
+
+Both are called "Player" because that is what they are. After Dark and Lunatic
+Fringe are Berkeley Systems' products; these apps play the copy you already own
+and are not that copy.
+
+After Dark is Berkeley Systems' work, so it isn't included here — that's what
+step 3 is for. The app fetches it for you, but if you'd rather do it yourself
+it's one 15 MB file:
+[AfterDark.img](https://archive.org/download/AfterDark_mac/AfterDark.img), from
+[this Internet Archive page](https://archive.org/details/AfterDark_mac), where
+it's filed under "ISO IMAGE."
+[Macintosh Garden](https://macintoshgarden.org/apps/after-dark-3) has it too.
+
+If macOS says the app is "damaged and can't be opened," it got quarantined by
+the download. Run this in Terminal and try again:
+
+```sh
+xattr -d com.apple.quarantine "/Applications/After Dark Player.app"
+```
+
+Why the hoops? macOS only opens an app without complaint if it's signed and
+notarized by Apple, which requires an Apple Developer Program membership at
+$99/year. This is a side project so please excuse our team in not setting that up.
+
+# Shoutouts to the After Dark community
+
+We started this project because we wanted to play the original *Lunatic Fringe* — and eventually the rest of *After Dark* — directly on a modern desktop. We're newcomers to the space and it was amazing to see all of the work that already exists, really awesome projects so we have to thank and credit all of them as well as the original authors of After Dark and its modules.e
+
+This is not a complete list so please excuse it, but we wanted to shoutout as many people as possible:
+
+[Flying Toasters at mass:werk](https://www.masswerk.at/flyer/)** by Norbert Landsteiner — a browser recreation of the classic module.
+
+[After Dark for OS 9](https://www.macintoshrepository.org/1859-after-dark-for-os-9)** — an earlier patched version of the After Dark 4.0 engine, attributed by later preservation work to Daxeria, that kept it running on Mac OS 9.
+
+[Fringe Player](http://www.sealiesoftware.com/fringe/)** by Greg Parker and Sealie Software — first through the Mac OS X Classic environment and later as a native PowerPC and Intel application, running the original *Lunatic Fringe* module.
+
+[The After Dark Screensaver archive](https://afterdarksaver.blogspot.com/)** by David Donarumo — documentation, compatibility notes, module history, and resources for keeping the Windows versions of After Dark running on newer systems.
+
+[Flying Toasters 3.1.0 for OS X](https://www.macintoshrepository.org/885-flying-toasters-3-1-0-for-osx)** by Heiko Kretschmer — a Universal Binary screensaver that brought Flying Toasters to PowerPC and Intel Macs.
+
+[Starryn](https://github.com/evangreen/starryn)** by Evan Green — a Windows recreation of the original *Starry Night* module.
+
+[Lunatic Fringe for the web](https://github.com/jackinloadup/lunatic-fringe)** — a browser recreation begun by James Carnley, substantially developed by schwal10, and later continued by jackinloadup.
+
+[After Dark in CSS](https://github.com/bryanbraun/after-dark-css)** by Bryan Braun — browser recreations of several classic modules made with CSS animations and transforms.
+
+[M.A.C.E.](https://mace.home.blog/2019/04/08/experimenting-with-init-cdev-support/)** — a broader classic Macintosh compatibility environment that implemented enough of the old Macintosh system APIs to run the original After Dark.
+
+[After Dark X and the After Dark Classic Set](https://en.infinisys.co.jp/download/index.shtml)** by Infinisys — commercial Mac OS X revivals of selected After Dark modules.
+
+[Other modern Flying Toasters ports](https://github.com/robertventurini/FlyingToasters), including [Robert Venturini’s macOS screensaver](https://github.com/robertventurini/FlyingToasters), [BeaVix’s browser version](https://github.com/BeaVix/FlyingToastersJS), [torunar’s XScreenSaver version](https://github.com/torunar/flying-toasters-xscreensaver), and [Marcus Greenwood’s Wayland/X11 version](https://github.com/marcusgreenwood/flying-toasters-wayland).
+
+[After Dark 4.94 Collection](https://www.macintoshrepository.org/84473-after-dark-4-94-collection)** by CybernetixZero — a patched and consolidated installation to run on Mac OS 9.2.2, building on Daxeria’s earlier compatibility work.
+
+[Ode to the Flying Toaster](https://flyingtoasters.greggant.com/)** by Greg Gant — a modern macOS homage with builds for both current Macs and older PowerPC-era versions of OS X.
+
+[Lunacy](https://morphing.cloud/lunacy/)** by Jeff Halter — a modern macOS player that runs the original *Lunatic Fringe* module.
+
+Also the [Internet Archive](https://archive.org/details/AfterDark_mac), [Macintosh Garden](https://macintoshgarden.org/apps/after-dark-3), [Macintosh Repository](https://www.macintoshrepository.org/), and [WinWorld](https://winworldpc.com/product/after-dark) that preserve the original disks and community knowledge.
+
+And credit to Berkeley Systems and the original module authors — especially Ben Haller, who created *Lunatic Fringe*. 
+
+___
+
+Our repo is just an open source contribution we hope helps anyone else who wants to build with Rust.
+
+It is an independent preservation project and is not affiliated with or endorsed by any of the projects above.
+
+
+
+## Running from source
+
+[To run it yourself from source, you need](https://rustup.rs) Rust.
+[Rust](https://rustup.rs).
+
+```sh
+git clone https://github.com/panth-net/after-dark-repository-rust.git
+cd after-dark-repository-rust
+cargo run -p ad-player --release
+```
+
+On first run it asks for your disk image, same as the packaged app, and keeps
+what it extracts in the platform's application-support directory. After that it
+opens a window listing the modules. Arrow keys select, **Return** plays the
+highlighted one, **Esc** leaves a running module, **Esc** again quits. Always
+use `--release` — a debug build runs roughly 10x slower.
+
+![The module list window: 76 modules down the left, the selected module's
+resource count and settings on the right, and the screen-saver idle bar along
+the bottom](menu.webp)
+
+To extract by hand instead — into `./modules`, which the player uses when you
+pass it a path:
+
+```sh
+python3 tools/audit/dump_all_forks.py AfterDark-original.img modules
+cargo run -p ad-player --release -- modules
+```
+
+More sources, including the SDK and ROM images used for testing, are listed in
+[AI_README.md](AI_README.md#getting-the-original-assets).
+
+A few other useful commands:
+
+```sh
+cargo run -p ad-player --release -- ~/Modules                      # browse a different folder
+cargo run -p ad-player --release -- "modules/Flying Toasters.rsrc" # run one module directly
+cargo run -p ad-player --release -- --export <folder>              # back up your high scores
+cargo run -p ad-player --release -- --import <folder-or-file>      # restore them
+```
+
+## Playing Lunatic Fringe
+
+The one module with real controls, not just visuals. Starting it asks which
+layout you want — **Up/Down** chooses, **Return** starts, **Esc** goes back —
+and **C** still swaps at any time while you play. This is the only change from the original, in case you prefer to play with one layout or the other.
+
+## High scores
+
+Saved automatically, alongside your imported modules, to:
+
+- macOS: `~/Library/Application Support/After Dark/`
+- Windows: `%APPDATA%\After Dark\`
+- Linux: `$XDG_DATA_HOME/after-dark/`
+
+Nothing lives inside the app itself, so replacing or deleting it costs you
+neither your scores nor your modules.
+
+Use the **Export**/**Import** buttons (or `E`/`I`) in the module list to back
+them up or move them to another machine.
+
+## Screen saver mode
+
+The bar along the bottom of the module list turns on idle-timeout behavior:
+pick a module (or Random), set a delay, and it takes over the screen after
+you've been away. This is the same application taking over the screen, not an
+OS-level `.saver` plug-in — recent macOS versions block keyboard input to
+those, which would make Lunatic Fringe unplayable that way. Details in
+[AI_README.md](AI_README.md#screen-saver-mode).
+
+## What works
+
+`docs/compatibility-matrix.md` has the module-by-module status, and
+`docs/module-findings.md` covers known issues. Tested by hand on macOS. Linux
+builds and passes the test suite in CI. The Windows build was broken from the
+first commit until recently — it compiles now, but no one has run it.
+
+## More detail
+
+- [AI_README.md](AI_README.md) — build layout, packaging, testing, and the
+  reasoning behind decisions that look arbitrary from the code alone.
+- `docs/LEARNINGS.md` — everything learned about the original file format and
+  the emulator along the way.
+- `docs/compatibility-matrix.md` / `docs/module-findings.md` — per-module
+  status, kept current by tooling.
+
+## Status
+
+Not actively maintained. This was a one-time build. Issues and
+pull requests may sit unread. If you want to take it over, open an issue and
+say so. We're happy to hand it off.
+
+## License
+
+The Rust code is MIT — see [LICENSE](LICENSE).
+
+Nothing else here is ours and none of it ships with this project. The After
+Dark modules, artwork and sounds are Berkeley Systems'; the Macintosh fonts are
+Apple's. 
+
+Both come off the disk you supply and stay on your machine. The
+vendored 68k core under `crates/ad-m68k/vendor/` is Karl Stenerud's, under MIT
+— its own notices are in that folder.

@@ -1,0 +1,19 @@
+# Normalise line endings in the repository, and check text out as LF
+# everywhere. The project builds on Windows, and `make_app.sh` and the Python
+# tools break outright if they arrive with CRLF.
+* text=auto eol=lf
+
+# Never touched: these are compared byte-for-byte in tests, and a line-ending
+# rewrite would corrupt them silently.
+*.png   binary
+*.webp  binary
+*.gif   binary
+*.rsrc  binary
+*.img   binary
+*.iso   binary
+*.ROM   binary
+
+# Vendored third-party source. Kept out of language statistics and collapsed in
+# diffs, because it is Karl Stenerud's code rather than this project's — see
+# NOTICE and crates/ad-m68k/vendor/PROVENANCE.md.
+crates/ad-m68k/vendor/** linguist-vendored
