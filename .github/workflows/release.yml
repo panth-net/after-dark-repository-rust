@@ -1,0 +1,171 @@
+name: Release
+
+# Builds the three downloads and attaches them to a GitHub Release.
+#
+# The binaries are not in the repository. Committing them was how the macOS
+# build used to be published, and it cost ~8 MB of git history per rebuild for
+# an artefact that is a pure function of a tagged commit — permanently, because
+# nothing removes a blob from history. A Release holds the same files, keyed to
+# the tag that produced them, and costs the repository nothing.
+#
+# Linux and Windows cannot be produced on the maintainer's Mac at all without
+# cross-toolchains, so they have to be built here regardless. This is the only
+# thing that builds them.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to build and publish (e.g. v0.1.0)'
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  GH_TOKEN: ${{ github.token }}
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # The release exists before anything uploads to it, and starts as a draft so
+  # a run that dies halfway leaves nothing published to download.
+  draft:
+    name: Draft the release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create it, or reuse the draft from a re-run
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::notice::$TAG already exists; uploading into it"
+            exit 0
+          fi
+          # A heredoc rather than an inline --notes: the text has apostrophes in
+          # it, and escaping those through a shell string is how a release ends
+          # up published with quoting debris in its description.
+          cat > notes.md <<'NOTES'
+          Download the one for your machine, below.
+
+          **None of them include After Dark.** The modules and the Macintosh
+          fonts are Berkeley Systems' and Apple's. The first launch asks for your
+          own copy of the original disk image and extracts a library into the
+          platform's application-data directory, where it survives the
+          application being replaced — along with the high scores.
+
+          Each download holds two applications: **After Dark Player** opens the
+          module list, and **Lunatic Fringe Player** opens that one game. They
+          are the same build, and they share one library and one score table.
+
+          Neither is signed by a certificate authority, because that costs money
+          a side project does not have. macOS wants right-click → Open the first
+          time; Windows SmartScreen wants "More info" → "Run anyway". The README
+          has the details, including what to do if macOS claims the application
+          is damaged.
+          NOTES
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --draft --verify-tag --title "After Dark Player $TAG" --notes-file notes.md
+
+  macos:
+    name: macOS (universal)
+    needs: draft
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # Both architectures, so one download runs on an Intel Mac as well as on
+      # Apple Silicon. make_app.sh lipos them together when the target is
+      # installed and quietly builds this machine's architecture only when it is
+      # not — here it must never take that branch.
+      - name: Add the Intel target
+        run: rustup target add x86_64-apple-darwin
+
+      - name: Build the bundles
+        run: tools/package/make_app.sh
+
+      - name: Fail if it is not universal
+        run: |
+          bin="dist/After Dark Player.app/Contents/MacOS/ad-player"
+          lipo -archs "$bin"
+          lipo -archs "$bin" | grep -q x86_64 || {
+            echo "::error::the Intel slice is missing; this would not run on an Intel Mac"
+            exit 1
+          }
+
+      # `ditto`, not `zip`: it is what preserves the bundle structure and the
+      # ad-hoc signature. A `zip`ped .app can arrive with a broken signature,
+      # which on Apple Silicon is fatal rather than untidy.
+      - name: Archive
+        run: ditto -c -k --sequesterRsrc dist After-Dark-Player-macOS.zip
+
+      - name: Upload
+        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber After-Dark-Player-macOS.zip
+
+  linux:
+    name: Linux (x86_64)
+    needs: draft
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # cpal links ALSA. X11 and Wayland are not needed to *build*: minifb loads
+      # them at run time, which is what lets one binary serve both.
+      - name: Audio build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Build the folders
+        run: tools/package/make_dist.sh
+
+      - name: Archive
+        run: tar -czf After-Dark-Player-Linux-x86_64.tar.gz -C dist "After Dark Player" "Lunatic Fringe Player"
+
+      - name: Upload
+        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber After-Dark-Player-Linux-x86_64.tar.gz
+
+  windows:
+    name: Windows (x64)
+    needs: draft
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # The same packaging script as Linux, under Git Bash, which is why it
+      # works out the `.exe` suffix rather than being told.
+      - name: Build the folders
+        shell: bash
+        run: tools/package/make_dist.sh
+
+      - name: Archive
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath After-Dark-Player-Windows-x64.zip
+
+      - name: Upload
+        shell: bash
+        run: gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" --clobber After-Dark-Player-Windows-x64.zip
+
+  # Published only once all three are attached, so nobody lands on a release
+  # page that offers their platform a file that is not there yet.
+  publish:
+    name: Publish
+    needs: [macos, linux, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish, as a pre-release if the tag says so
+        run: |
+          # `v0.1.0-rc1` is a pre-release: published, so it can be downloaded and
+          # tried on a real Windows or Linux machine, but not marked latest — the
+          # README's /releases/latest/download links keep pointing at the last
+          # finished build rather than at something being tested.
+          case "$TAG" in
+            *-*) gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease ;;
+            *)   gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest ;;
+          esac

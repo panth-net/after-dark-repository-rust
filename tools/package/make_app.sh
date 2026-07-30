@@ -37,7 +37,12 @@ set -eu
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
 OUT=${1:-"$REPO/dist"}
 APP="$OUT/After Dark Player.app"
-BIN="$REPO/target/release/ad-player"
+
+# Where cargo actually puts things. Assuming `$REPO/target` is wrong the moment
+# `CARGO_TARGET_DIR` is set: cargo builds where it is told, and the copy below
+# would pick up whatever stale binary was left behind in `target/release`.
+TARGET_DIR=${CARGO_TARGET_DIR:-"$REPO/target"}
+BIN="$TARGET_DIR/release/ad-player"
 
 # The module the second app opens, by the title the browser lists it under —
 # which is also the module file's name, so this is not a label but a lookup. The
@@ -56,8 +61,8 @@ UNIVERSAL=""
 if rustup target list --installed 2>/dev/null | grep -q x86_64-apple-darwin; then
   if cargo build -p ad-player --release --target x86_64-apple-darwin >/dev/null 2>&1; then
     lipo -create -output /tmp/ad-player-universal \
-      "$REPO/target/release/ad-player" \
-      "$REPO/target/x86_64-apple-darwin/release/ad-player" 2>/dev/null &&
+      "$TARGET_DIR/release/ad-player" \
+      "$TARGET_DIR/x86_64-apple-darwin/release/ad-player" 2>/dev/null &&
       UNIVERSAL=/tmp/ad-player-universal
   fi
 fi

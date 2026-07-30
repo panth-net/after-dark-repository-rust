@@ -22,11 +22,16 @@
 //! # Why the `unsafe` lives here
 //!
 //! The workspace sets `unsafe_code = "forbid"` and that is worth keeping. This
-//! crate opts out for two `extern` declarations and nothing else: no state, no
-//! pointers, no allocation, no lifetimes to get wrong. Both functions take
-//! integers and return integers. Confining it to a crate this small is what lets
-//! the forbid stay in force across the emulator, the rasteriser and the resource
-//! parser, where it is actually preventing something.
+//! crate opts out for three `extern` declarations and nothing else: no state, no
+//! pointers, no allocation, no lifetimes to get wrong. Every one of them takes
+//! integers and returns integers. Confining it to a crate this small is what
+//! lets the forbid stay in force across the emulator, the rasteriser and the
+//! resource parser, where it is actually preventing something.
+//!
+//! The third is [`hold_screen`], which is here for that reason and not because
+//! taking the screen is keyboard state: it is one more integer-in, integer-out
+//! call to the window server, and the alternative was granting the player crate
+//! the right to write `unsafe` for the rest of time.
 //!
 //! # Platforms
 //!
@@ -53,6 +58,83 @@ unsafe extern "C" {
     fn CGEventSourceKeyState(state: i32, key: u16) -> bool;
     /// `CGEventSourceFlagsState(CGEventSourceStateID) -> CGEventFlags`
     fn CGEventSourceFlagsState(state: i32) -> u64;
+}
+
+/// Values from HIToolbox's `SetSystemUIMode`. `kUIModeAllHidden` is the menu
+/// bar and the Dock; the options are the system chords to switch off with them.
+#[cfg(target_os = "macos")]
+mod ui_mode {
+    pub const NORMAL: u32 = 0;
+    pub const ALL_HIDDEN: u32 = 3;
+    /// `kUIOptionDisableHide` — Command-H.
+    ///
+    /// `kUIOptionDisableProcessSwitch` (`1 << 3`) is deliberately *not* set. It
+    /// would take Command-Tab as well as Mission Control and the Spaces switches,
+    /// which are one thing to the window server — and being unable to switch away
+    /// from a screen saver is a worse bargain than the occasional stray switch.
+    /// Leaving a running module is already two presses of Escape.
+    pub const DISABLE_HIDE: u32 = 1 << 6;
+}
+
+#[cfg(target_os = "macos")]
+#[link(name = "Carbon", kind = "framework")]
+unsafe extern "C" {
+    /// `SetSystemUIMode(SystemUIMode, SystemUIOptions) -> OSStatus`
+    fn SetSystemUIMode(mode: u32, options: u32) -> i32;
+}
+
+/// Holds the whole screen until it is dropped.
+///
+/// A borderless window at display size *covers* the menu bar and the Dock. It
+/// does not switch them off, and it does not stop the window server handing a
+/// keystroke to something other than the game. This does both.
+///
+/// `SetSystemUIMode` is the C entry point to the same switch as
+/// `NSApplicationPresentationOptions`, and that is exactly why it is the one
+/// used: one more `extern` declaration in the crate that already exists to hold
+/// them, rather than a new dependency and an `objc_msgSend` signature to get
+/// wrong on two architectures.
+///
+/// **Switched off while this is held:** the menu bar, the Dock, and Command-H.
+/// Two things are deliberately left *on*. Force quit, because
+/// Command-Option-Escape is the way out if a module ever wedges. And process
+/// switching, so Command-Tab still works: being unable to leave a screen saver
+/// is a worse bargain than the occasional stray switch away from one.
+///
+/// **Not switchable off, by this or anything else:** Spotlight. Command-Space
+/// is dispatched by the window server before any application is offered the
+/// event; only an accessibility-trusted event tap can intercept it, which means
+/// a permission prompt this project has no business showing. Lunatic Fringe's
+/// own keyboard column pairs Fire on Command with Power Shield on Space, so that
+/// limit is why the player offers `F` as a second Fire — the chord cannot be
+/// blocked, so the game has to be playable without pressing it.
+#[derive(Debug)]
+pub struct ScreenHold(());
+
+/// Take the screen. The caller keeps the value for as long as it wants it.
+///
+/// Restoring is a [`Drop`], so it survives an early return and an unwind out of
+/// a module. Leaving somebody with no menu bar and no Dock because a module
+/// returned an error would mean logging out to get them back.
+#[must_use]
+pub fn hold_screen() -> ScreenHold {
+    #[cfg(target_os = "macos")]
+    {
+        // SAFETY: a C function taking two integers by value and returning one.
+        // No pointers, no ownership, no thread affinity.
+        unsafe { SetSystemUIMode(ui_mode::ALL_HIDDEN, ui_mode::DISABLE_HIDE) };
+    }
+    ScreenHold(())
+}
+
+impl Drop for ScreenHold {
+    fn drop(&mut self) {
+        #[cfg(target_os = "macos")]
+        {
+            // SAFETY: as above. Restores what `hold_screen` changed.
+            unsafe { SetSystemUIMode(ui_mode::NORMAL, 0) };
+        }
+    }
 }
 
 /// Whether the key with this virtual key code is physically down.

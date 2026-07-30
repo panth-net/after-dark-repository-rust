@@ -26,10 +26,13 @@ AfterDark-original.img
 /tests/oracle/captures/
 
 # --- Build output ---
-# dist/ is NOT ignored. `dist/After Dark Player.app` and its Lunatic Fringe
-# counterpart are the downloads the README links to, built by
-# tools/package/make_app.sh. They are only the binary, its plist and an icon —
-# no modules and no fonts, which is what made committing it a problem before.
+# dist/ IS ignored, and used to not be. It held the packaged macOS bundles,
+# which is how the download the README linked to was published — ~8 MB of binary
+# committed afresh on every rebuild, permanently, for a file that is a pure
+# function of the commit it was built from. The downloads are GitHub Release
+# assets now, built by .github/workflows/release.yml on a version tag; this is
+# where make_app.sh and make_dist.sh leave their output locally.
+/dist/
 /target/
 node_modules/
 .DS_Store

@@ -69,13 +69,10 @@ const KEY_MAP: &[(Key, u8)] = &[
     // F (0x03) is absent: it is a second Fire. See the modifiers below.
     (Key::A, 0x00), (Key::S, 0x01), (Key::D, 0x02),
     (Key::H, 0x04), (Key::G, 0x05), (Key::Z, 0x06), (Key::X, 0x07),
-    // C (0x08) is absent: it swaps the key layout. See `LAYOUT_TOGGLE`.
-    (Key::V, 0x09), (Key::B, 0x0B), (Key::Q, 0x0C),
+    (Key::C, 0x08), (Key::V, 0x09), (Key::B, 0x0B), (Key::Q, 0x0C),
     (Key::W, 0x0D), (Key::E, 0x0E), (Key::R, 0x0F), (Key::Y, 0x10),
     (Key::T, 0x11),
-    // 1 (0x12) is absent: it is Pause. Escape cannot be, because it already means
-    // "leave this module and go back to the list" on every screen.
-    (Key::Key2, 0x13), (Key::Key3, 0x14), (Key::Key4, 0x15),
+    (Key::Key1, 0x12), (Key::Key2, 0x13), (Key::Key3, 0x14), (Key::Key4, 0x15),
     (Key::Key6, 0x16), (Key::Key5, 0x17), (Key::Equal, 0x18), (Key::Key9, 0x19),
     (Key::Key7, 0x1A), (Key::Minus, 0x1B), (Key::Key8, 0x1C), (Key::Key0, 0x1D),
     (Key::RightBracket, 0x1E), (Key::O, 0x1F), (Key::U, 0x20),
@@ -83,20 +80,29 @@ const KEY_MAP: &[(Key, u8)] = &[
     (Key::Enter, 0x24), (Key::L, 0x25), (Key::J, 0x26), (Key::Apostrophe, 0x27),
     (Key::K, 0x28), (Key::Semicolon, 0x29), (Key::Backslash, 0x2A),
     (Key::Comma, 0x2B), (Key::Slash, 0x2C), (Key::N, 0x2D),
-    // M (0x2E) is absent: it is the mute toggle. See `MUTE_TOGGLE`; it types
-    // normally while a module is asking for text.
-    (Key::Period, 0x2F), (Key::Tab, 0x30), (Key::Space, 0x31),
+    (Key::M, 0x2E), (Key::Period, 0x2F), (Key::Tab, 0x30), (Key::Space, 0x31),
     // Escape (0x35) is absent: it leaves the module, and a key that does two
     // things is a bug waiting to be filed. Backspace stays, because the modern
     // layout maps it to Abort Ship and the original passes it through.
     (Key::Backquote, 0x32), (Key::Backspace, 0x33),
     // Modifiers. Fire in Lunatic Fringe is Command (`LFky 128` stores it as the
-    // cmdKey mask), read from the KeyMap.
+    // cmdKey mask), read from the KeyMap, and both Command keys send it. The
+    // game draws its own controls screen from that same resource and it says
+    // `cmd` in both columns — a player reading the game's screen has to find it
+    // true, so this table reproduces the original rather than correcting it.
     //
-    // `F` is a second Fire because Command is the *cause* of the lost key-up
-    // described on `Shared::key_seen`: an ordinary key cannot suppress another
-    // key's release, so holding a turn and firing with F is simply correct rather
-    // than repaired after the fact.
+    // `F` is a second Fire, and on a laptop it is the one to use. The original's
+    // **Keyboard** column pairs Fire on Command with Power Shield on Space, so
+    // playing that set means holding Command and pressing Space — Spotlight on
+    // every Mac made this century, dispatched by the window server before the
+    // application is offered the event, and refusable by nothing. The **Keypad**
+    // column has no such pair: Command with keypad 0 is not a system chord. The
+    // original controls are therefore fine on a keyboard that has a keypad and
+    // impossible on one that does not, which is precisely the gap `F` fills.
+    //
+    // `F` also sidesteps the lost key-up on `Shared::key_seen`: macOS stops
+    // delivering `keyUp:` for ordinary keys while Command is held, so holding a
+    // turn, firing, and releasing the turn leaves the ship turning forever.
     //
     // It is **remapped, not withheld** — it reaches the module every time, as
     // Command's code. What it does not do is *also* arrive as `0x03`, its own code,
@@ -136,14 +142,6 @@ const KEY_MAP: &[(Key, u8)] = &[
 /// of the same translation and must not drift from it.
 const HW_CODE: &[(Key, u8)] = &[
     (Key::F, 0x03),
-    // Held back from `KEY_MAP` because the player keeps them for itself while a
-    // module is playing — `C` swaps layouts, `1` pauses, `M` mutes — but they are
-    // still real keys on a real keyboard, and [`TYPING_MAP`] hands every one of
-    // them to a module that is asking for a name. Their absence above is about
-    // what a module may see, never about what the hardware can be asked.
-    (Key::C, 0x08),
-    (Key::Key1, 0x12),
-    (Key::M, 0x2E),
     (Key::RightSuper, 0x36),
     (Key::RightShift, 0x3C),
     (Key::RightAlt, 0x3D),
@@ -211,6 +209,8 @@ mod lf {
     pub const ABORT: u8 = 0x00;
     /// Fire — the Command key, stored in `LFky` as the cmdKey mask.
     pub const FIRE: u8 = 0x37;
+    /// Power Shield in the *keyboard* set — the space bar.
+    pub const SHIELD_SPACE: u8 = 0x31;
 }
 
 /// The modern layout: WASD or arrows, with the right hand on JKL.
@@ -232,11 +232,26 @@ const MODERN_MAP: &[(Key, u8)] = &[
     (Key::Backspace, lf::ABORT), (Key::Delete, lf::ABORT),
 ];
 
-/// Swaps between the original and modern layouts.
-const LAYOUT_TOGGLE: Key = Key::C;
-
-/// Mutes and unmutes the running module's sound.
-const MUTE_TOGGLE: Key = Key::M;
+/// Additions to the original layout, for Lunatic Fringe only.
+///
+/// The game's own controls screen lists two sets, and one of them cannot be
+/// played on a modern Mac as printed. The **keypad** set is fine: Fire on
+/// Command, Power Shield on keypad `0`, and those two together are not a system
+/// chord. The **keyboard** set fires on Command and shields on `Space` — and
+/// Command with Space is Spotlight, dispatched by the window server before this
+/// application is offered the keystroke and refusable by nothing we can write.
+///
+/// So the keyboard set gains `G` for Power Shield beside `Space`, and it already
+/// has `F` for Fire beside Command (`F` lives in [`KEY_MAP`], firing in both
+/// layouts). Neither addition removes the original key: anyone on a keyboard
+/// with a keypad plays exactly what the game's screen says. `F` and `G` are
+/// simply the pair that can be held together without the system taking them.
+///
+/// Scoped to Lunatic Fringe and not to "whenever the modern layout is off",
+/// because the original layout is also what every *other* module runs under.
+/// Turning `G` into `Space` for all 140 of them would be precisely the silent
+/// corruption [`MODERN_MAP`] is documented as avoiding.
+const ORIGINAL_MAP: &[(Key, u8)] = &[(Key::G, lf::SHIELD_SPACE)];
 
 /// Keys whose meaning while typing is not the one [`KEY_MAP`] gives them.
 ///
@@ -244,17 +259,13 @@ const MUTE_TOGGLE: Key = Key::M;
 /// `KEY_MAP` as Command — the second Fire from `d025d4f` — so looking there
 /// first would type nothing at all for it.
 ///
-/// The first three are the keys the player keeps for itself while a module is
-/// being *played*, each for a good reason: `C` swaps layouts, `1` pauses, `F`
-/// fires. None of those reasons survives contact with a text field, where the
-/// only correct behaviour for a letter key is to type its letter. `Escape` is
-/// deliberately absent: leaving the module has to work from every screen,
-/// including this one.
+/// `F` is the only key left with two meanings, and only while a module is being
+/// *played*: it fires. That reason does not survive contact with a text field,
+/// where the only correct behaviour for a letter key is to type its letter.
+/// `Escape` is deliberately absent: leaving the module has to work from every
+/// screen, including this one.
 const TYPING_MAP: &[(Key, u8)] = &[
-    (LAYOUT_TOGGLE, 0x08), // c
-    (Key::Key1, 0x12),     // 1
-    (Key::F, 0x03),        // f
-    (MUTE_TOGGLE, 0x2E),   // m
+    (Key::F, 0x03), // f
     // The base table carries only `Backspace` ($33), the key a Mac keyboard
     // labels "delete". A full-size keyboard's separate Delete is accepted as the
     // same erasing key, matching what the modern layout already does for Abort
@@ -263,13 +274,9 @@ const TYPING_MAP: &[(Key, u8)] = &[
     (Key::Delete, 0x33),
 ];
 
-/// The three of [`TYPING_MAP`] that are withheld during play; see there.
+/// The one key of [`TYPING_MAP`] whose meaning changes during play; see there.
 #[cfg(test)]
-const RESERVED_KEYS: &[(Key, u8)] = &[
-    (LAYOUT_TOGGLE, 0x08),
-    (Key::Key1, 0x12),
-    (Key::F, 0x03),
-];
+const RESERVED_KEYS: &[(Key, u8)] = &[(Key::F, 0x03)];
 
 /// A prompt that means the module wants typing rather than steering, matched
 /// case-insensitively against the strings it draws.
@@ -291,7 +298,7 @@ fn asks_for_typing(lines: &[String]) -> bool {
 /// strings the window draws. Nothing clips them, so text that does not fit runs
 /// off the edge of the screen and looks like a rendering bug.
 const ORIGINAL_HELP: &str =
-    "ORIGINAL: keypad 4/6 turn, 5 thrust, F or Cmd fire, 8 turbo, 0 shield, A abort";
+    "ORIGINAL-ISH: 4/6 or L/' turn, 5 or ; thrust, F fire, 8/P turbo, 0/G shield, A abort";
 /// Both halves of the modern layout are spelled out rather than abbreviated.
 /// "A/D or arrows turn, W/Up thrust" is true but reads as one hybrid set, and
 /// somebody who reaches for the arrow keys and finds the ship will not move has
@@ -301,16 +308,16 @@ const MODERN_HELP: &str =
 /// Shown once Escape has been pressed once. First, because it is a question.
 const LEAVING_HELP: &str =
     "Press Esc AGAIN to leave this module    anything else carries on playing";
-/// Shown while paused. Leads with the way out of it, because the game's own screen
-/// says "Press Caps Lock" and that key does not exist here.
+/// Shown while paused. Leads with the way out of it — which is now the key the
+/// game's own screen asks for, so the banner and the module finally agree.
 const PAUSED_HELP: &str =
-    "PAUSED - press 1 to play    C = swap controls    Esc twice = back to the list";
+    "PAUSED - Caps Lock, 1 or click to play    Esc twice = back to the list";
 /// Shown while playing.
 const PLAYING_HELP: &str =
-    "PLAYING - 1 pauses    C = swap controls    Esc twice = back to the list";
+    "PLAYING - Caps Lock, 1 or click pauses    Esc twice = back to the list";
 /// Shown on every module except Lunatic Fringe, whose `LFky` key table is what
 /// the detailed lines describe. Everything on it is true of every module.
-const GENERIC_HELP: &str = "Esc twice = back to the list    M mutes sound";
+const GENERIC_HELP: &str = "Esc twice = back to the list";
 
 /// Shown while the module is asking for typed text.
 ///
@@ -348,6 +355,26 @@ fn code_for(key: Key, modern: bool, typing: bool) -> Option<u8> {
         }
     }
     KEY_MAP.iter().find(|(k, _)| *k == key).map(|(_, code)| *code)
+}
+
+/// What the module should see, which is [`code_for`] plus the Lunatic Fringe
+/// additions to the original layout. See [`ORIGINAL_MAP`] for why they are not
+/// simply in that table: `!modern` is every other module too.
+fn code_for_module(key: Key, fringe: bool, modern: bool, typing: bool) -> Option<u8> {
+    // Neither of these applies while typing, where `G` and `1` are a letter and a
+    // digit in somebody's name.
+    if fringe && !typing {
+        // Withheld, and only here: the player pauses on it. See `FRINGE_PAUSE`.
+        if key == FRINGE_PAUSE {
+            return None;
+        }
+        if !modern {
+            if let Some((_, code)) = ORIGINAL_MAP.iter().find(|(k, _)| *k == key) {
+                return Some(*code);
+            }
+        }
+    }
+    code_for(key, modern, typing)
 }
 
 /// Shared between the window loop and the emulator's present hook.
@@ -415,12 +442,17 @@ struct Shared {
     /// When each key last produced a *down* edge.
     ///
     /// Needed because macOS does not deliver `keyUp:` for an ordinary key while
-    /// Command is held. Hold a turn key, press Command to fire, release the turn
-    /// key: its release is never reported, `minifb` still calls it down, and the
-    /// ship turns forever. Command is Fire in Lunatic Fringe, so this happens
-    /// constantly. A key genuinely still held keeps producing auto-repeat down
+    /// Command is held. Hold a turn key, press Command, release the turn key:
+    /// its release is never reported, `minifb` still calls it down, and the ship
+    /// turns forever. A key genuinely still held keeps producing auto-repeat down
     /// edges; one whose release was swallowed goes quiet, which is what tells them
     /// apart.
+    ///
+    /// Command is Fire in Lunatic Fringe, so this happens constantly for anyone
+    /// playing the original controls. `F` fires without it — see `KEY_MAP` — but
+    /// that is a way around the problem and not a fix for it: the swallowed
+    /// release is macOS behaviour, not the game's, and it costs any module read
+    /// while Command happens to be down.
     key_seen: Vec<(Key, std::time::Instant)>,
     /// Keys judged stuck by the rule above, ignored until they are pressed again.
     suppressed: Vec<Key>,
@@ -430,9 +462,9 @@ struct Shared {
     /// Whether the modern layout is active.
     ///
     /// On at launch for Lunatic Fringe, off for everything else. The original
-    /// controls are a numeric keypad and the Command key, and most machines this
-    /// runs on have neither — a laptop keyboard cannot press keypad 4, so the
-    /// default that needs no explanation is the one whose keys exist. `C` still
+    /// controls are built around a numeric keypad, which most machines this runs
+    /// on do not have — a laptop keyboard cannot press keypad 4, so the default
+    /// that needs no explanation is the one whose keys exist. `C` still
     /// swaps back, and the banner says which layout is live.
     ///
     /// Scoped to Lunatic Fringe rather than set for every module because
@@ -440,8 +472,6 @@ struct Shared {
     /// *its* `LFky` table. That is a correct translation for the one module that
     /// polls those codes and a silent corruption of the keyboard for any other.
     modern: bool,
-    /// Previous state of [`LAYOUT_TOGGLE`], for edge detection.
-    layout_key_was_down: bool,
     /// Sound is switched off for this session.
     ///
     /// Seeded from the saved sound preference at every launch and flipped live
@@ -521,9 +551,15 @@ impl minifb::InputCallback for KeyTaps {
 /// `Return` is `0x24` and modules have a claim on it, and `G` was only ever the key
 /// that happened to be verified first. All three are given back.
 ///
-/// `Key::CapsLock` is the real key, and it is here for **Windows and Linux only**:
-/// macOS never delivers it, so on that platform `1` is the pause key and this entry
-/// is inert. That asymmetry is the whole reason a substitute exists.
+/// `Key::CapsLock` is the real key, and it is now the only one.
+///
+/// It used to need a substitute — `1` — because macOS never delivers Caps Lock
+/// as a `keyDown:`, so on that platform this entry was inert. `ad_keystate`
+/// closed that hole by reading the latch itself, from the flags state the window
+/// server keeps, and once the real key worked everywhere the stand-in was a key
+/// held back from every module for nothing. Windows and Linux take it from the
+/// event stream; macOS reads it below. The mouse click is the fallback on all
+/// three, and matters most where keyboard events are not arriving at all.
 ///
 /// # A latch cannot be flipped by another application
 ///
@@ -536,7 +572,24 @@ impl minifb::InputCallback for KeyTaps {
 /// game: the keyboard light says one thing and the title bar says another. The title
 /// bar is the truthful one. That is cosmetic, and it is the right trade against a
 /// game that unpauses itself while nobody is looking.
-const CAPS_TOGGLE: &[Key] = &[Key::CapsLock, Key::Key1];
+const CAPS_TOGGLE: &[Key] = &[Key::CapsLock];
+
+/// A second pause key, for Lunatic Fringe only.
+///
+/// Caps Lock is the key the game's own screen names, and it is a latch the
+/// system owns rather than a letter taken from anyone — which is why it costs
+/// nothing and applies everywhere. This one is a real key held back from a real
+/// module, so it is scoped to the only module that has a pause worth the name:
+/// [`PAUSED_HELP`] and [`PLAYING_HELP`] are drawn for Lunatic Fringe and nothing
+/// else, and every other module keeps `1` as the digit `0x12`.
+///
+/// `1` and not the obvious alternatives. `P` is Turbo Thrust in the game's own
+/// keyboard column. `Return` submits the name on the high-score screen. `Tab`
+/// never arrives at all on macOS — see the note in `reserved_keys_are_not_passed
+/// _through` about why it was given back. A digit is the least likely thing a
+/// screensaver polls for, and this was the pause key here until Caps Lock could
+/// be read directly, so it is the least surprising choice on top of that.
+const FRINGE_PAUSE: Key = Key::Key1;
 
 /// Wheel delta that counts as one row.
 ///
@@ -994,15 +1047,37 @@ fn default_library() -> PathBuf {
 /// The module this application is pinned to, or `None` for the ordinary
 /// launcher.
 ///
-/// `Contents/Resources/module` holds one line: the title of the module to run
-/// instead of showing the list — the file stem the browser lists it under, so
-/// `Lunatic Fringe` and not `Lunatic Fringe.rsrc`. A bundle without that file is
-/// the browser, unchanged; there is no flag and no setting to get wrong.
+/// A `module` file holds one line: the title of the module to run instead of
+/// showing the list — the file stem the browser lists it under, so
+/// `Lunatic Fringe` and not `Lunatic Fringe.rsrc`. No such file means the
+/// browser, unchanged; there is no flag and no setting to get wrong.
+///
+/// Two places are looked at, because the platforms lay an application out
+/// differently and neither spelling should win by accident:
+///
+/// * `<App>.app/Contents/Resources/module`, the macOS bundle.
+/// * `module` beside the executable, which is all Linux and Windows have —
+///   there is no bundle there, only a folder with the binary in it.
+///
+/// The bundle is checked first so a stray file inside `Contents/MacOS` cannot
+/// quietly override the packaged answer on macOS.
 fn pinned_module() -> Option<String> {
     let exe = std::env::current_exe().ok()?;
+    pinned_beside(exe.parent()?)
+}
+
+/// The two-layout lookup, given the directory the executable sits in.
+///
+/// Split out from [`pinned_module`] for the same reason [`pinned_in`] is: it
+/// can then be tested against a directory laid out either way, without a real
+/// bundle and without a real executable to be inside it.
+fn pinned_beside(beside: &Path) -> Option<String> {
     // <App>.app/Contents/MacOS/ad-player -> <App>.app/Contents/Resources
-    let resources = exe.parent().and_then(Path::parent)?.join("Resources");
-    pinned_in(&resources)
+    beside
+        .parent()
+        .map(|contents| contents.join("Resources"))
+        .and_then(|resources| pinned_in(&resources))
+        .or_else(|| pinned_in(beside))
 }
 
 /// The title written in `<resources>/module`, or `None` if there is no such file
@@ -1645,30 +1720,37 @@ fn browse(
         println!("\n--- {} ---", entry.title);
         // The press that left the module must not also be read as "quit".
         esc_was_down = true;
-        // A raised run — Preview or the idle timer — gets its own borderless
-        // window covering the display, dropped (and so closed) when the module
-        // ends. The browser window cannot be used for this: `minifb` cannot
-        // resize a window after creation, so "full screen" has to be a window
-        // *created* at screen size. When the display cannot be asked, the
-        // shared window floats to the front instead — smaller, but present.
+        // Every run gets its own borderless window covering the display,
+        // dropped (and so closed) when the module ends — a raised one from
+        // Preview or the idle timer, and equally one a person started from the
+        // list. A module is the screen's whole content or it is a toy in a box;
+        // there is no reading of "screen saver" where playing one in a 640x480
+        // window with the Dock underneath is the better answer.
+        //
+        // The browser window cannot be used for this: `minifb` cannot resize a
+        // window after creation, so "full screen" has to be a window *created*
+        // at screen size. When the display cannot be asked, the shared window
+        // floats to the front instead — smaller, but present.
+        //
         // A full-screen run replaces the window in the shared slot rather than
         // opening a second one — the old window must be GONE, not just behind:
         // its Metal view would keep rendering underneath and starve the
         // emulator. See `browser_window` for the symptom this caused.
-        let went_fullscreen = if raise {
-            match fullscreen_window(&entry.title) {
-                Some(fs) => {
-                    *window.borrow_mut() = fs;
-                    true
-                }
-                None => false,
+        let went_fullscreen = match fullscreen_window(&entry.title) {
+            Some(fs) => {
+                *window.borrow_mut() = fs;
+                true
             }
-        } else {
-            false
+            None => false,
         };
+        // Held across the run and dropped before the browser comes back, so the
+        // menu bar and the Dock return with it. See `Kiosk` for what this can
+        // and cannot switch off.
+        let kiosk = went_fullscreen.then(ad_keystate::hold_screen);
         if let Err(e) = run_module(&entry.path, window, audio, options, raise, by_hand) {
             println!("{e}");
         }
+        drop(kiosk);
         if went_fullscreen {
             // Give the browser its window back. If the display refuses, there
             // is nothing left to draw into, so leaving is the only honest exit.
@@ -2027,9 +2109,17 @@ fn draw_browser(
 /// play. Listing them is the point of the screen — the keypad-free set is
 /// invisible otherwise, and somebody with a laptop would reasonably conclude the
 /// original controls were not for them.
+/// `G` rather than `Space` on the second row, and `F` in the heading rather than
+/// Command: those are the two the game's own screen names, and together they are
+/// Spotlight. See [`ORIGINAL_MAP`]. Both originals still work — this row is what
+/// somebody without a keypad should press, not all they *can*.
+///
+/// The heading says **original-ish** for exactly that reason. Calling it the
+/// original while two of its keys are ours would be a small lie told on the one
+/// screen whose whole job is to be believed.
 const ORIGINAL_SETS: &[(&str, &str)] = &[
     ("keypad", "4 / 6 turn    5 thrust    8 turbo    0 shield"),
-    ("no keypad", "L / ' turn    ; thrust    P turbo    Space shield"),
+    ("no keypad", "L / ' turn    ; thrust    P turbo    G shield"),
 ];
 
 /// The modern layout's three lines on the chooser screen.
@@ -2056,6 +2146,16 @@ const CHOOSER_BOX_W: i32 = CHOOSER_PANEL_W - 48;
 /// is derived from, or it drifts the first time the panel is resized.
 #[cfg(test)]
 const CHOOSER_TEXT_W: i32 = CHOOSER_BOX_W - 24;
+
+/// The chooser's bottom line, hoisted for the same reason every other banner is:
+/// nothing clips it, so a line too long to fit runs off the edge of the screen
+/// and reads as a rendering fault rather than as text.
+///
+/// It names the pause keys because this is the last screen before the game, and
+/// the game's own first screen says only "Press Caps Lock" — which is true and
+/// half the answer. See [`FRINGE_PAUSE`].
+const CHOOSER_FOOTER: &str =
+    "Up / Down chooses    Return starts    Esc goes back    1 or Caps Lock pauses";
 
 /// Ask which control layout to start Lunatic Fringe in.
 ///
@@ -2108,7 +2208,7 @@ fn choose_layout(window: &Rc<RefCell<Window>>, dir: &Path, title: &str) -> Optio
                     canvas.text(&strike, x + 12, y + 20 + (j as i32) * 20, line, fg);
                 }
             } else {
-                canvas.text(&strike, x + 12, y + 20, "ORIGINAL - Command fires", fg);
+                canvas.text(&strike, x + 12, y + 20, "ORIGINAL-ISH - F fires", fg);
                 for (j, (name, keys)) in ORIGINAL_SETS.iter().enumerate() {
                     let ty = y + 40 + (j as i32) * 20;
                     canvas.text(&strike, x + 12, ty, &format!("{name}:"), fg);
@@ -2120,7 +2220,7 @@ fn choose_layout(window: &Rc<RefCell<Window>>, dir: &Path, title: &str) -> Optio
             &strike,
             x,
             panel.1 + panel.3 - 16,
-            "Up / Down chooses    Return starts    Esc goes back    C swaps any time",
+            CHOOSER_FOOTER,
             colour::DIM,
         );
 
@@ -2205,17 +2305,31 @@ fn run_module(
     // The console gets the same story as the banner. Said every launch because
     // the Caps Lock substitute is not guessable, but only where it is true.
     if fringe {
+        // The layout that was actually chosen, not the one that is the default.
+        // Nothing swaps mid-game any more, so a description of the other one is
+        // not merely premature — it is wrong for the whole session.
+        let controls = if start_modern {
+            "The modern layout steers with either hand: A and D turn, W thrusts — or \
+             Left and Right turn, Up thrusts. They are the same controls twice, so use \
+             whichever you like, or one of each. Then J fires, L turbo, K shield, \
+             Delete aborts."
+        } else {
+            "Original-ish: the game's own controls, with F to fire and G for Power \
+             Shield. With a keypad, 4 and 6 turn, 5 thrusts, 8 turbo, 0 shields, A \
+             aborts; without one, L and ' turn, ; thrusts, P turbo, G shields. F \
+             fires either way. The game's own screen names Command and Space for \
+             those two instead, and both still work — but holding Command while \
+             pressing Space is Spotlight, which macOS takes before this app is \
+             offered the keystroke, so F and G are the pair that can be held at \
+             once."
+        };
         println!(
-            "Press 1 (or click the window) to start or pause the game — it stands in \
-             for Caps Lock, which macOS never delivers. Controls start on the modern \
-             layout, where you can steer with either hand: A and D turn, W thrusts — \
-             or Left and Right turn, Up thrusts. They are the same controls twice, so \
-             use whichever you like, or one of each. Then J fires, L turbo, K shield, \
-             Delete aborts. C swaps to the original keypad controls, M mutes. Esc \
+            "Press Caps Lock, 1, or click the window to start or pause the game — \
+             Caps Lock is the one the game's own screen asks for. {controls} Esc \
              twice returns to the list. State is in the title bar."
         );
     } else {
-        println!("Esc twice returns to the list. M mutes sound.");
+        println!("Esc twice returns to the list.");
     }
 
     // Fonts, from beside the module — `_DrawString` draws nothing without them.
@@ -2281,7 +2395,6 @@ fn run_module(
         cmd_was_down: false,
         cmd_released_at: None,
         modern: start_modern,
-        layout_key_was_down: false,
         muted: start_muted,
         typing: false,
         typing_is_stale: false,
@@ -2546,51 +2659,28 @@ fn run_module(
                     s.esc_armed_until = None;
                 }
 
-                // Mute, flipped once per press of M — but never while typing,
-                // where M is a letter in somebody's name.
-                for (key, down) in &edges {
-                    if s.typing {
-                        break;
-                    }
-                    if *down && *key == MUTE_TOGGLE {
-                        s.muted = !s.muted;
-                        s.hint_until = ticks.saturating_add(HINT_TICKS);
-                    }
-                }
                 // The Caps Lock latch, flipped once per press. Driven from the
                 // edges, so a tap shorter than a frame still counts.
                 //
-                // Not while typing, where `1` is a digit somebody may want in
-                // their name and pausing is meaningless anyway.
+                // Not while typing, where pausing is meaningless anyway.
                 for (key, down) in &edges {
                     if s.typing {
                         break;
                     }
-                    if *down && CAPS_TOGGLE.contains(key) {
+                    if *down && (CAPS_TOGGLE.contains(key) || (fringe && *key == FRINGE_PAUSE)) {
                         s.caps = !s.caps;
                         // Pausing is the moment to be told the controls again.
                         s.hint_until = ticks.saturating_add(HINT_TICKS);
                     }
                 }
-                // Swap layouts. Everything held is released first: the two layouts
-                // put different codes on the same physical keys, so a key held
-                // across the swap would otherwise leave its old code set with no
-                // release ever coming for it.
+                // The layout is settled before the game starts and does not
+                // change while it runs. `C` used to swap it mid-play, which meant
+                // the player had to hold back a letter key from every module for
+                // the whole session to keep the option open. The chooser screen
+                // asks the question once, where it can show both layouts side by
+                // side and be read rather than remembered — so `C` is a letter
+                // again, and `Shared::modern` is fixed for the run.
                 //
-                // Not while typing: `C` is a letter before it is a control.
-                for (key, down) in &edges {
-                    if s.typing {
-                        break;
-                    }
-                    if *down && *key == LAYOUT_TOGGLE {
-                        s.modern = !s.modern;
-                        s.held.clear();
-                        s.suppressed.clear();
-                        s.key_seen.clear();
-                        s.hint_until = ticks.saturating_add(HINT_TICKS);
-                    }
-                }
-                s.layout_key_was_down = w.is_key_down(LAYOUT_TOGGLE);
                 // The real Caps Lock, now that there is a way to read it.
                 //
                 // This is the control the game's own screen asks for, and until
@@ -2686,10 +2776,11 @@ fn run_module(
                 s.held = KEY_MAP
                     .iter()
                     .chain(MODERN_MAP.iter())
+                    .chain(ORIGINAL_MAP.iter())
                     .chain(TYPING_MAP.iter())
                     .map(|(k, _)| *k)
                     .filter(|k| key_down(&w, *k, hid) && !s.suppressed.contains(k))
-                    .filter_map(|k| code_for(k, modern, typing))
+                    .filter_map(|k| code_for_module(k, fringe, modern, typing))
                     .collect();
                 s.held.sort_unstable();
                 s.held.dedup();
@@ -2712,7 +2803,7 @@ fn run_module(
                     if !*down {
                         continue;
                     }
-                    if let Some(code) = code_for(*key, modern, typing) {
+                    if let Some(code) = code_for_module(*key, fringe, modern, typing) {
                         if !s.held.contains(&code) {
                             s.held.push(code);
                         }
@@ -2897,6 +2988,35 @@ mod tests {
         // wrong, and the list is the safe answer.
         std::fs::write(res.join("module"), "  \n").expect("write");
         assert_eq!(pinned_in(&res), None);
+    }
+
+    /// The same answer out of either layout.
+    ///
+    /// macOS has the file in the bundle, a directory *above* the executable;
+    /// Linux and Windows have no bundle to put it in, so it sits beside the
+    /// binary. Packaging writes whichever the platform uses, and a release that
+    /// shipped the flat layout while the lookup only knew the bundle one would
+    /// hand every Linux and Windows player the module list instead of the game.
+    #[test]
+    fn a_pinned_app_names_its_module_in_either_layout() {
+        let root = std::env::temp_dir().join("ad-player-test-layouts");
+        let _ = std::fs::remove_dir_all(&root);
+
+        // macOS: <App>.app/Contents/MacOS/ad-player, the file in ../Resources.
+        let macos = root.join("Lunatic Fringe Player.app/Contents/MacOS");
+        let resources = root.join("Lunatic Fringe Player.app/Contents/Resources");
+        std::fs::create_dir_all(&macos).expect("scratch");
+        std::fs::create_dir_all(&resources).expect("scratch");
+        assert_eq!(pinned_beside(&macos), None, "no file yet: the browser");
+        std::fs::write(resources.join("module"), "Lunatic Fringe\n").expect("write");
+        assert_eq!(pinned_beside(&macos).as_deref(), Some("Lunatic Fringe"));
+
+        // Linux and Windows: the binary and the file in one folder.
+        let flat = root.join("Lunatic Fringe Player");
+        std::fs::create_dir_all(&flat).expect("scratch");
+        assert_eq!(pinned_beside(&flat), None, "no file yet: the browser");
+        std::fs::write(flat.join("module"), "Lunatic Fringe\n").expect("write");
+        assert_eq!(pinned_beside(&flat).as_deref(), Some("Lunatic Fringe"));
     }
 
     /// Window coordinates map onto the framebuffer through the letterbox.
@@ -3124,6 +3244,12 @@ mod tests {
     }
 
     /// Fire has a non-modifier alternative, and no toggle key doubles as itself.
+    ///
+    /// Command fires because the game's own controls screen says it does. `F`
+    /// exists because that screen also puts Power Shield on `Space` in the
+    /// keyboard column, and Command plus Space is Spotlight — taken by the window
+    /// server before this application is offered it. Either key alone is enough
+    /// to play; the point of the pair is that no keyboard is left without one.
     #[test]
     fn fire_has_an_alternative_that_cannot_swallow_a_key_up() {
         // Command, both sides, plus F — all reaching the Mac code for cmdKey.
@@ -3132,8 +3258,11 @@ mod tests {
             .filter(|(_, code)| *code == 0x37)
             .map(|(k, _)| *k)
             .collect();
-        assert!(fire.contains(&Key::LeftSuper));
-        assert!(fire.contains(&Key::F), "F must fire, so Command can be avoided");
+        assert!(fire.contains(&Key::LeftSuper), "the game's screen says cmd fires");
+        assert!(
+            fire.contains(&Key::F),
+            "F must fire too, so a keypad-free keyboard is not stuck with Cmd+Space"
+        );
         // And F must not also arrive as itself, or one key would do two things.
         assert!(
             !KEY_MAP.iter().any(|(k, code)| *k == Key::F && *code == 0x03),
@@ -3274,7 +3403,7 @@ mod tests {
                 .map(|(_, c)| *c);
             assert!(!is_own_code, "{key:?} must not send its own code while playing");
         }
-        // Handed over while typing, so `c`, `f` and `1` can appear in a name.
+        // Handed over while typing, so `f` can appear in a name.
         for (key, code) in RESERVED_KEYS {
             assert_eq!(code_for(*key, false, true), Some(*code), "{key:?} while typing");
             assert_eq!(code_for(*key, true, true), Some(*code), "{key:?} while typing");
@@ -3438,7 +3567,15 @@ mod tests {
         // 8px inset on the left, and the same again as margin on the right.
         let room = i32::try_from(WIDTH).unwrap_or(640) - 16;
         for line in [
-            ORIGINAL_HELP, MODERN_HELP, PAUSED_HELP, PLAYING_HELP, LEAVING_HELP, TYPING_HELP,
+            ORIGINAL_HELP,
+            MODERN_HELP,
+            PAUSED_HELP,
+            PLAYING_HELP,
+            LEAVING_HELP,
+            TYPING_HELP,
+            // Drawn across the chooser's panel rather than inside a box, so the
+            // screen is the room it gets.
+            CHOOSER_FOOTER,
         ] {
             let w = f.text_width(line.as_bytes());
             assert!(
@@ -3478,13 +3615,17 @@ mod tests {
             assert!(MODERN_HELP.contains(key), "the banner must name {key}");
         }
 
-        // Both footers name the key that changes the state they describe.
-        // The banner must name a key that works on the platform it is drawn on.
-        // "Caps Lock" would be faithful and useless here; macOS never delivers it.
-        assert!(PAUSED_HELP.contains("press 1"), "the way out of a pause must be on it");
-        assert!(PLAYING_HELP.contains("1 pauses"));
+        // Both footers name the key that changes the state they describe, and it
+        // is Caps Lock on every platform now. Naming it used to be faithful and
+        // useless — macOS delivers no event for it, so the banner said `1`
+        // instead — until `ad_keystate` read the latch directly. The banner and
+        // the game's own "Press Caps Lock" screen finally say the same thing.
+        assert!(PAUSED_HELP.contains("Caps Lock"), "the way out of a pause must be on it");
+        assert!(PLAYING_HELP.contains("Caps Lock"));
+        // And both name the click, which is the control that still works when no
+        // keyboard event is arriving at all. See the click handler.
         for line in [PAUSED_HELP, PLAYING_HELP] {
-            assert!(!line.contains("Caps"), "do not name a key the OS will not deliver");
+            assert!(line.contains("click"), "the fallback belongs on the banner");
         }
     }
 
@@ -3534,25 +3675,104 @@ mod tests {
         assert_eq!(ESC_CONFIRM_TICKS, 180);
     }
 
+    /// `G` shields in Lunatic Fringe's original layout, and is a letter anywhere
+    /// else.
+    ///
+    /// The scoping is the whole point. `!modern` is not "the original layout" —
+    /// it is also every one of the other modules, none of which asked for `G` to
+    /// stop being `G`. Getting this wrong would be silent: 140 modules would
+    /// read a space bar that nobody pressed.
+    #[test]
+    fn g_is_power_shield_only_where_the_game_asked_for_it() {
+        // The game, original layout: Power Shield, the code its keyboard set
+        // reaches for `Space`.
+        assert_eq!(
+            code_for_module(Key::G, true, false, false),
+            Some(lf::SHIELD_SPACE)
+        );
+        // And `F` is Fire there, so the pair can be held at once — which Command
+        // and Space cannot be, on any Mac with Spotlight.
+        assert_eq!(code_for_module(Key::F, true, false, false), Some(lf::FIRE));
+
+        // The game's modern layout has `K` for shield already; `G` stays a letter.
+        assert_eq!(code_for_module(Key::G, true, true, false), Some(0x05));
+        // Every other module, which runs with `modern` false and never asked.
+        assert_eq!(code_for_module(Key::G, false, false, false), Some(0x05));
+        // And while typing a high-score name, `G` is a `g`.
+        assert_eq!(code_for_module(Key::G, true, false, true), Some(0x05));
+
+        // The originals are untouched: this adds a key, it does not move one.
+        assert_eq!(code_for_module(Key::Space, true, false, false), Some(lf::SHIELD_SPACE));
+        assert_eq!(code_for_module(Key::LeftSuper, true, false, false), Some(lf::FIRE));
+    }
+
+    /// `1` pauses Lunatic Fringe, and is the digit `1` everywhere else.
+    ///
+    /// Caps Lock costs nothing to reserve — it is a system latch, not a letter
+    /// taken from a module. This one is a real key, so it is held back only where
+    /// it buys something: the pause banner is drawn for Lunatic Fringe and no
+    /// other module, so reserving `1` across the library would take a key from
+    /// 140 modules to add a control to one.
+    #[test]
+    fn the_second_pause_key_is_withheld_only_from_the_game_that_pauses() {
+        for modern in [false, true] {
+            assert_eq!(
+                code_for_module(FRINGE_PAUSE, true, modern, false),
+                None,
+                "the player pauses on it in Lunatic Fringe"
+            );
+            assert_eq!(
+                code_for_module(FRINGE_PAUSE, false, modern, false),
+                Some(0x12),
+                "every other module keeps it as a digit"
+            );
+        }
+        // And it types, so a high score can be "1st" or a name can have a 1 in it.
+        assert_eq!(code_for_module(FRINGE_PAUSE, true, false, true), Some(0x12));
+
+        // It must not be one of the game's own controls, in either column, or
+        // pausing would fly the ship. `P` is Turbo Thrust, which is why it lost.
+        for (_, code) in MODERN_MAP {
+            assert_ne!(code_for(FRINGE_PAUSE, false, false), Some(*code));
+        }
+        assert!(!CAPS_TOGGLE.contains(&FRINGE_PAUSE), "Caps Lock is the other one");
+    }
+
     /// Keys the player reserves never reach the module, under either layout.
     #[test]
     fn reserved_keys_are_not_passed_through() {
-        // Pause and the layout swap.
-        // Four keys are *withheld* — they never reach a module at all. Every one
-        // the player takes is a key a module can no longer see, so the list is kept
-        // as short as it can be. `F` is not among them: it is *remapped*, arriving
-        // as Fire rather than as itself, which is a different thing.
-        for key in [LAYOUT_TOGGLE, Key::Key1, Key::Escape] {
+        // **One** key is withheld from every module, and it is as short as this
+        // list goes. `1` is withheld too, but from Lunatic Fringe alone, which is
+        // why it is not here and is asserted in
+        // `the_second_pause_key_is_withheld_only_from_the_game_that_pauses`
+        // instead — this test is about the base table, which still hands it over.
+        // `F` is in neither category: it is *remapped*, arriving as Fire rather
+        // than as itself, which is a different thing again.
+        for modern in [false, true] {
+            assert_eq!(
+                code_for(Key::Escape, modern, false),
+                None,
+                "Escape leaves the module and must not also reach it"
+            );
+        }
+
+        // The three that used to be held back from everything. `C` stopped being
+        // a control because the chooser settles the layout before the module
+        // starts; `M` because the browser's Sound setting and the system volume
+        // both outrank it; `1` because `ad_keystate` reads the real Caps Lock it
+        // was standing in for, and it is now a second pause key for the one
+        // module that pauses rather than a key taken from all of them.
+        for (key, code) in [(Key::C, 0x08), (Key::Key1, 0x12), (Key::M, 0x2E)] {
             for modern in [false, true] {
                 assert_eq!(
                     code_for(key, modern, false),
-                    None,
-                    "{key:?} is a player control and must not reach the module"
+                    Some(code),
+                    "{key:?} is an ordinary key now, not a player control"
                 );
             }
         }
         // Pause is the Caps Lock latch, because that is what pausing is here.
-        assert!(CAPS_TOGGLE.contains(&Key::Key1));
+        assert!(CAPS_TOGGLE.contains(&Key::CapsLock));
         // Escape is deliberately *not* pause: it already leaves the module.
         assert!(!CAPS_TOGGLE.contains(&Key::Escape));
 
@@ -3642,11 +3862,13 @@ mod tests {
         );
         assert!(
             CAPS_TOGGLE.contains(&Key::CapsLock),
-            "the real key still works where the platform delivers it"
+            "the real key is the pause key on every platform now"
         );
-        assert!(
-            CAPS_TOGGLE.contains(&Key::Key1),
-            "macOS never delivers Caps Lock, so there must be a substitute"
+        assert_eq!(
+            CAPS_TOGGLE.len(),
+            1,
+            "the substitute is gone: `ad_keystate` reads the real latch on macOS, \
+             and a stand-in is a key held back from every module for nothing"
         );
         // And a toggle key must not also arrive as itself.
         for k in CAPS_TOGGLE {

@@ -10,6 +10,7 @@ measured by re-running it, not by reasoning about it.
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -24,7 +25,13 @@ from rsrc import parse  # noqa: E402
 # `[profile.lab]` in Cargo.toml — measuring a debug build reported Mandelbrot as
 # a 240-second timeout when it finishes in a fraction of a second.
 #     cargo build --profile lab --example run_module -p ad-host-v2
-BIN = REPO / "target/lab/examples/run_module"
+# `CARGO_TARGET_DIR` if it is set, because cargo builds where it is told and
+# `REPO/target` is then somebody else's binary — quite possibly for another
+# operating system, if the repository is mounted into a container. That failure
+# is silent and it lies: the runner cannot execute, every module comes back with
+# no output at all, and the survey reports the whole library as regressed.
+TARGET = Path(os.environ.get("CARGO_TARGET_DIR") or REPO / "target")
+BIN = TARGET / "lab/examples/run_module"
 
 
 def compare(now: dict, base: dict) -> int:

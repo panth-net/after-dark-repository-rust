@@ -139,9 +139,11 @@ polls the `KeyMap` for exactly the codes in `LFky`, so `A` arrives as keypad
 never also arrives as itself, which matters most for `A` — Turn Left in the
 modern layout, Abort Ship in the original.
 
-It is the layout the game **starts** in, because the original one asks for a
-numeric keypad and the Command key and most keyboards this runs on have no
-keypad at all. `C` swaps to the original. The default is scoped to Lunatic
+It is the layout the game **starts** in, because the original one is built
+around a numeric keypad and most keyboards this runs on have none. The chooser
+screen offers both side by side before the module starts, and that settles it
+for the run — there is no mid-game swap and so no key held back from every
+module to keep one available. The default is scoped to Lunatic
 Fringe — keyed off the same `LFky` probe that decides the banner — because the
 remapping targets codes from *that* module's key table; applying it to any
 other module would quietly turn `A` into keypad 4 for no reason.
@@ -163,15 +165,17 @@ the session, so a missed cue can't leave the next game unsteerable.
 game's own help text ("Use Caps Lock to pause and unpause the game"). The
 real key never arrives as a `keyDown:` on macOS — it produces only a
 `flagsChanged:` event, which `minifb` handles for Ctrl/Shift/Alt/Cmd and no
-further — so the emulated Caps Lock is a latch that `1`, `Return`, or a mouse
-click flips. Windows and Linux deliver the real key, so it works there too.
+further — so there used to be a stand-in, `1`, for that platform alone.
 
-On macOS the physical lock now drives the latch as well, read as the flag it
-is via `ad_keystate::caps_lock`. That is purely additive: it moves the latch
-on a *change* in the lock, so a Caps Lock that never moves overrides nothing
-and the stand-in keys keep working exactly as before. Starting a session with
-the lock already on counts as a change, which is what somebody who switched it
-on before launching meant.
+There isn't now. `ad_keystate::caps_lock` reads the physical lock as the flag
+it is, so the real key drives the latch on macOS too, and Windows and Linux
+have always delivered it as an ordinary event. Once the real key worked
+everywhere, the substitute was a key held back from every module for nothing,
+and it went back to being the digit `1`. A mouse click still flips the latch on
+all three: clicks arrive through `mouseDown:` rather than `keyDown:`, so it is
+the one control that survives a window receiving no keyboard events at all.
+Starting a session with the lock already on counts as a change, which is what
+somebody who switched it on before launching meant.
 
 Pausing and switching to another application is safe: the latch moves on key
 *events*, and an unfocused window receives none, so hitting Caps Lock
@@ -199,6 +203,9 @@ the key that happened to get verified first.
 Fringe's `LFky` declares *two* original key sets and polls both at once: the
 keypad set (4/6 turn, 5 thrust, 8 turbo, 0 shield) and a keypad-free set
 (`L`/`'` turn, `;` thrust, `P` turbo, Space shield), Command firing in either.
+The chooser calls that layout **original-ish**, because two of its keys are
+ours: `F` beside Command and `G` beside Space, the pair the keypad-free set
+would otherwise require you to press as ⌘Space. See `ORIGINAL_MAP`.
 The modern layout remaps `L` onto Turbo Thrust, so for anyone playing the
 keypad-free set turning left silently stops existing — the key is read
 correctly and lands on a control they were not aiming at. `;` is not remapped,
@@ -212,10 +219,21 @@ screen saver working with nobody watching, and a dialog waiting for Return
 would stop it dead.
 
 **Command fires, and holding it no longer breaks the other keys.** macOS
-doesn't deliver `keyUp:` for an ordinary key while Command is held, so an
-input layer built on the event stream loses the turn key's release and the
-ship keeps turning after you let go. Command is Fire in this game, so that
-was the one combination the original controls needed most.
+doesn't deliver `keyUp:` for an ordinary key while Command is held, so an input
+layer built on the event stream loses the turn key's release and the ship keeps
+turning after you let go. Command is Fire in this game, so that is the one
+combination the original controls need most.
+
+**`F` fires too, and on a laptop it is the one to use.** This is not a
+preference: the game's own controls screen puts Power Shield on `Space` in its
+keyboard column, so playing that column means holding Command and pressing
+Space — Spotlight on any current Mac. System hot keys are dispatched by the
+WindowServer before the application is offered the event, so no amount of input
+handling can refuse it, and no version of this player will ever block it. The
+keypad column has no such pair — Command with keypad `0` is not a system chord —
+so the original controls are fine on a keyboard with a keypad and unplayable on
+one without. `F` is what closes that gap, and it sidesteps the swallowed
+`keyUp:` at the same time.
 
 The fix is to stop asking the event stream. Every module steers by polling
 the low-memory `KeyMap` — a bitmap of what is *physically down right now* —
@@ -242,19 +260,36 @@ that stays right.
 
 ## Keys the player reserves
 
-Three are withheld from every module entirely:
+One is withheld from every module entirely:
 
 | key | does |
 |---|---|
 | **Esc** | leave the module, on the second press |
-| **1** | pause / start / unpause |
-| **C** | swap control layout |
+
+One more is withheld from **Lunatic Fringe alone**, which is the pattern to copy
+for anything like it:
+
+| key | does | why only there |
+|---|---|---|
+| **1** | second pause key, beside Caps Lock | the pause banner is drawn for Lunatic Fringe and nothing else, so reserving it across the library would take a key from 140 modules to add a control to one. See `FRINGE_PAUSE` |
+
+There were four across the board once. `C` swapped the control layout, which the
+chooser screen now settles before the module starts; `M` muted, which the
+browser's own **Sound** setting and the system volume both do better; `1` stood
+in for a Caps Lock macOS would not deliver, which `ad_keystate` now reads
+directly — it came back as a pause key scoped to the one game rather than a key
+taken from all of them. Every key the player keeps is a key no module can see, so
+each of those went back into `KEY_MAP` with its own code rather than merely
+losing its binding.
+
+Caps Lock is free by comparison: it is a system latch rather than a letter taken
+from anyone, which is why it applies everywhere and `1` does not.
 
 One is remapped — it still reaches the module, just as a different key:
 
 | key | arrives as | why |
 |---|---|---|
-| **F** | Command (Fire) | lets you play the original layout without touching Command, which is what makes macOS drop the *other* key's release |
+| **F** | Command (Fire) | a second Fire, so the keypad-free column is playable: its Power Shield is `Space`, and Command plus Space is Spotlight, which nothing can block. Also avoids Command dropping the *other* key's release |
 
 ## High score files
 
@@ -347,6 +382,18 @@ disk image the first time. No terminal and no `cargo`. It ad-hoc signs the
 result (`codesign -s -`, free, no Apple account — and not optional on Apple
 Silicon, since a completely unsigned binary is killed by the kernel rather
 than just warned about).
+
+```sh
+tools/package/make_dist.sh
+```
+
+is the same two applications for Linux and Windows, and runs on both — it works
+out the `.exe` suffix from `uname`, so the Windows runner drives it under Git
+Bash. There is no bundle off macOS, so the pin file sits *beside* the executable
+instead of in `Contents/Resources`; `pinned_beside` reads both layouts and
+`a_pinned_app_names_its_module_in_either_layout` holds it to both. Ship the
+lookup without the packaging, or the packaging without the lookup, and every
+Linux and Windows player gets the module list where the game should be.
 
 **The bundle carries no modules and no fonts.** Those are Berkeley Systems'
 and Apple's, and shipping them from a public repository is redistributing

@@ -51,6 +51,36 @@ const TICK_NANOS: u64 = 1_000_000_000 / TICKS_PER_SECOND as u64;
 /// backlog is abandoned and the schedule restarts from now.
 const MAX_LAG: Duration = Duration::from_millis(250);
 
+/// The longest a single call will block, however far ahead the tick is.
+///
+/// [`MAX_LAG`] guards being *behind*. This guards being far *ahead*, which is the
+/// same failure wearing the opposite sign and does far more damage. Sleeping is
+/// how pacing works, so this is not a performance tweak: the window's only input
+/// path runs inside the present hook that calls this, so every millisecond spent
+/// here is a millisecond the player cannot press a key, and macOS draws the
+/// spinning wheel for it.
+///
+/// A tick far in the future means the module executed a long burst of emulated
+/// time between two presents — a death sequence, or a high-score table being
+/// sorted and drawn. The emulated clock advances from *executed cycles*, so a
+/// burst that takes the host half a second can claim ten emulated seconds, and
+/// honouring that literally sleeps for all ten with the window shut.
+///
+/// Worse, it sustains itself whenever the module is *waiting for a key*: the key
+/// can only arrive from the hook that is asleep, so the game spins, burns more
+/// emulated time, and computes an even longer sleep. Lunatic Fringe's name entry
+/// after a game is exactly that shape, and it froze the application outright.
+///
+/// The wait is **clamped, not abandoned**, and the difference is the whole point.
+/// Abandoning it — restarting the schedule, as a backlog does — leaves the module
+/// running unpaced for exactly the stretch it was ahead, and a module's own
+/// timeouts are measured in the clock this paces. Lunatic Fringe's high-score
+/// entry then expired in a fraction of a second and returned to the title screen
+/// before anyone could type a name. Clamping keeps the schedule, so the remainder
+/// is slept off across the calls that follow and the window is serviced between
+/// them: still paced, never blocked for long.
+const MAX_SLEEP: Duration = Duration::from_millis(100);
+
 /// Paces a tick sequence against real time.
 #[derive(Debug)]
 pub struct Pacer {
@@ -116,7 +146,10 @@ impl Pacer {
         let due = self.epoch + Duration::from_nanos(offset.saturating_mul(TICK_NANOS));
         let now = Instant::now();
         if now < due {
-            std::thread::sleep(due - now);
+            // Clamped, never abandoned. See `MAX_SLEEP`: this call holds the
+            // window's only input path shut for as long as it blocks, and the
+            // schedule has to survive so the module stays paced.
+            std::thread::sleep((due - now).min(MAX_SLEEP));
             self.slept = self.slept.saturating_add(1);
         } else if now.duration_since(due) > MAX_LAG {
             self.resync(tick);
@@ -182,6 +215,58 @@ mod tests {
             "returned after only {waited:?}"
         );
         assert_eq!(p.slept(), 1);
+    }
+
+    /// A tick far in the future must not hold the input path shut.
+    ///
+    /// The reported symptom: dying in Lunatic Fringe froze the application for a
+    /// long stretch with the spinning wheel up, the high-score screen appeared,
+    /// and typing a name froze it for good. One cause. The emulated clock comes
+    /// from executed cycles, so the burst of work at the end of a game advances
+    /// it by seconds in a single step; this then slept off the whole difference
+    /// inside the present hook, which is the only place keys are read. Name entry
+    /// made it permanent — the game waits for a key that cannot arrive until this
+    /// returns, and spins, which advances the clock further.
+    #[test]
+    fn a_tick_far_in_the_future_does_not_hold_the_window_shut() {
+        let mut p = Pacer::new();
+        p.wait_for_tick(1_000);
+
+        let before = Instant::now();
+        // Ten emulated seconds in one step.
+        p.wait_for_tick(1_600);
+        let waited = before.elapsed();
+        assert!(
+            waited <= MAX_SLEEP + Duration::from_millis(60),
+            "held the input path shut for {waited:?}"
+        );
+
+        // Clamped, not abandoned. Restarting the schedule here would leave the
+        // module unpaced for the whole stretch it was ahead, and its own timeouts
+        // run on this clock: Lunatic Fringe's high-score entry expired instantly
+        // and bounced back to the title screen before a name could be typed.
+        assert_eq!(p.resyncs(), 0, "the schedule must survive a forward jump");
+        assert!(p.slept() >= 1);
+
+        // Still ahead, so the next call blocks again — the remainder is slept off
+        // across calls, with the window serviced in between, rather than in one
+        // go with the window shut.
+        let before = Instant::now();
+        p.wait_for_tick(1_600);
+        assert!(
+            before.elapsed() >= Duration::from_millis(50),
+            "the backlog must still be being paced, not skipped"
+        );
+    }
+
+    /// The cap is above an ordinary frame by a wide margin, so normal pacing
+    /// never trips it: one tick is ~16.7 ms.
+    #[test]
+    fn the_cap_leaves_ordinary_pacing_untouched() {
+        assert!(
+            MAX_SLEEP >= Duration::from_nanos(3 * TICK_NANOS),
+            "a few frames of catch-up must still be slept in one call"
+        );
     }
 
     #[test]
