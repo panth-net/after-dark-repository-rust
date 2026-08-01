@@ -1,0 +1,167 @@
+name: CI
+
+# All three desktop targets have to build, because the product ships on each.
+# The vendored Musashi core is C, so a platform-specific build break is a real
+# risk rather than a theoretical one — that is exactly what committing the
+# generated opcode tables was meant to remove, and this is what proves it
+# stayed removed.
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # A failed build should not also cost a slow debuginfo link.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report every platform's result: knowing a break is Windows-only is most
+      # of the diagnosis.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # Whatever `stable` is on the day the job runs, not a pinned version —
+      # there is no rust-toolchain.toml here and this step should not claim
+      # otherwise. `Cargo.lock` is committed, so the *dependencies* are exact;
+      # the compiler is not. That is the intended trade for a project that is
+      # not actively maintained: it keeps building as Rust moves, and a break
+      # from a new stable shows up here rather than in someone's checkout.
+      - name: Install the current stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      # cpal needs ALSA headers on Linux. The audio feature is off by default so
+      # the headless lab never links a sound backend, but the *product* ships
+      # with sound on all three platforms, so all three have to prove it builds.
+      - name: Audio build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      - name: Build
+        run: cargo build --workspace --all-targets
+
+      - name: Test
+        run: cargo test --workspace --no-fail-fast
+
+      # The audio path, built and tested separately because it is a non-default
+      # feature. `audio_device.rs` skips when a runner has no sound card rather
+      # than failing — that would report a fact about the runner, not the code.
+      - name: Build and test with audio
+        run: cargo test -p ad-runtime --features audio --no-fail-fast
+
+      # Warnings are failures here. They were allowed to accumulate once by a
+      # check that grepped for "^error" and so never matched a warning at all.
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Clippy with audio
+        run: cargo clippy -p ad-runtime --all-targets --features audio -- -D warnings
+
+      # No `cargo fmt --check` gate yet, deliberately. This codebase predates
+      # one and is not currently rustfmt-clean (145 hunks), much of it in
+      # hand-aligned trap tables where rustfmt's output is harder to read than
+      # the original. Adopting the gate is a single mechanical commit plus a
+      # rustfmt.toml, and it should not land on top of in-flight work. Asserting
+      # a check that is known to fail would only teach everyone to ignore CI.
+
+  msrv:
+    name: MSRV (rust-version in Cargo.toml)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read rust-version from the workspace manifest
+        id: msrv
+        run: |
+          v=$(grep -m1 '^rust-version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "workspace declares MSRV $v"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - uses: Swatinem/rust-cache@v2
+
+      # `ad-player` depends on `ad-runtime` with `features = ["audio"]`, so a
+      # plain `cargo build --workspace` links cpal and therefore needs the ALSA
+      # headers here too — the audio feature being off *by default* says nothing
+      # about what a workspace build pulls in.
+      - name: Audio build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      # An MSRV that is declared but never exercised drifts silently: a call to
+      # u32::is_multiple_of (stable in 1.87) sat in a 1.85 workspace until clippy
+      # happened to be read carefully.
+      - name: Build at the declared MSRV
+        run: cargo build --workspace
+
+  musashi-tables:
+    name: Musashi opcode tables are current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # The committed tables are a pure function of m68k_in.c. Regenerating and
+      # diffing is what keeps "committed for portability" from becoming
+      # "committed and quietly stale".
+      - name: Regenerate and fail on drift
+        run: AD_M68K_REGENERATE=1 cargo build -p ad-m68k
+
+  compatibility-baseline:
+    name: No module regresses
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The example lives in `ad-runtime`, but cargo resolves features across the
+      # whole workspace, so `ad-player`'s `audio` dependency reaches this build
+      # and cpal wants ALSA. Same reason as the MSRV job.
+      - name: Audio build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+
+      # `lab`, not debug: optimised so the survey takes seconds instead of a
+      # quarter of an hour, but with overflow checks kept so a rasteriser that
+      # wraps fails loudly instead of drawing the wrong shape. See the
+      # `[profile.lab]` comment in Cargo.toml.
+      - name: Build the lab runner
+        run: cargo build --profile lab --example run_module
+
+      # The 66-module survey needs the original disk image, which is not in the
+      # repository — it is the user's licensed copy. Skip rather than fail when
+      # it is absent, so forks and PRs from contributors without it still get
+      # the build, test, clippy and MSRV signal. When the image IS present the
+      # baseline is authoritative and a regression fails the run.
+      - name: Extract modules and check the baseline
+        run: |
+          if [ ! -f AfterDark-original.img ]; then
+            echo "::notice::AfterDark-original.img absent; skipping the compatibility survey"
+            exit 0
+          fi
+          python3 tools/audit/dump_all_forks.py AfterDark-original.img modules
+          python3 tools/lab/survey.py modules 20 --check tests/baseline/modules.json
+      # The survey is hermetic by construction, not by convention:
+      # `RuntimeOptions::from_env` resolves no save directory unless AD_SAVE_DIR
+      # is set, so a run cannot depend on or leave behind state outside itself.
+      - name: No files were left behind
+        run: |
+          if [ -d "$HOME/.local/share/after-dark" ]; then
+            echo "::error::the survey wrote saved state; it must be hermetic"
+            exit 1
+          fi

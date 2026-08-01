@@ -1,0 +1,587 @@
+{
+ "frames": 20,
+ "modules": {
+  "Artist": {
+   "colours": 1,
+   "detail": "$A260 _HFSDispatch",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "Bad Dog": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Blackboard": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Bogglins": {
+   "colours": 29,
+   "detail": "ink=23868",
+   "ink": 23868,
+   "outcome": "full lifecycle"
+  },
+  "Boris": {
+   "colours": 15,
+   "detail": "ink=94",
+   "ink": 94,
+   "outcome": "full lifecycle"
+  },
+  "Bouncing Ball": {
+   "colours": 2,
+   "detail": "ink=144",
+   "ink": 144,
+   "outcome": "full lifecycle"
+  },
+  "Bugs": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Bungee Roulette": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Can of Worms": {
+   "colours": 11,
+   "detail": "ink=2855",
+   "ink": 2855,
+   "outcome": "full lifecycle"
+  },
+  "Chameleon": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Clock": {
+   "colours": 10,
+   "detail": "ink=16294",
+   "ink": 16294,
+   "outcome": "full lifecycle"
+  },
+  "Clocks": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Coming Soon": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Confetti Factory": {
+   "colours": 24,
+   "detail": "ink=46504",
+   "ink": 46504,
+   "outcome": "full lifecycle"
+  },
+  "DOS Shell": {
+   "colours": 1,
+   "detail": "$A902 ?",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "Dominoes": {
+   "colours": 16,
+   "detail": "ink=12109",
+   "ink": 12109,
+   "outcome": "full lifecycle"
+  },
+  "Doodles": {
+   "colours": 16,
+   "detail": "ink=8167",
+   "ink": 8167,
+   "outcome": "full lifecycle"
+  },
+  "Down the Drain": {
+   "colours": 2,
+   "detail": "ink=5037",
+   "ink": 5037,
+   "outcome": "full lifecycle"
+  },
+  "DrawMorph": {
+   "colours": 1,
+   "detail": "$AA03 _NewPixMap",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "FadeAway": {
+   "colours": 2,
+   "detail": "ink=24000",
+   "ink": 24000,
+   "outcome": "full lifecycle"
+  },
+  "Fish Pro": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Fish!": {
+   "colours": 17,
+   "detail": "ink=23264",
+   "ink": 23264,
+   "outcome": "full lifecycle"
+  },
+  "Flying Toasters": {
+   "colours": 20,
+   "detail": "ink=44160",
+   "ink": 44160,
+   "outcome": "full lifecycle"
+  },
+  "Flying Toasters Pro": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Flying Toilets": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Fractal Forest": {
+   "colours": 9,
+   "detail": "ink=5951",
+   "ink": 5951,
+   "outcome": "full lifecycle"
+  },
+  "FrankenScreen": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "GeoBounce": {
+   "colours": 3,
+   "detail": "ink=1678",
+   "ink": 1678,
+   "outcome": "full lifecycle"
+  },
+  "Globe": {
+   "colours": 26,
+   "detail": "ink=20220",
+   "ink": 20220,
+   "outcome": "full lifecycle"
+  },
+  "GraphStat": {
+   "colours": 2,
+   "detail": "ink=13906",
+   "ink": 13906,
+   "outcome": "full lifecycle"
+  },
+  "Gravity": {
+   "colours": 1,
+   "detail": "Gravity: Sorry, Gravity must be on the main monitor",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Guts": {
+   "colours": 45,
+   "detail": "ink=19898",
+   "ink": 19898,
+   "outcome": "full lifecycle"
+  },
+  "Hard Rain": {
+   "colours": 7,
+   "detail": "ink=4392",
+   "ink": 4392,
+   "outcome": "full lifecycle"
+  },
+  "Life II": {
+   "colours": 14,
+   "detail": "ink=76849",
+   "ink": 76849,
+   "outcome": "full lifecycle"
+  },
+  "Lissajous": {
+   "colours": 2,
+   "detail": "ink=6209",
+   "ink": 6209,
+   "outcome": "full lifecycle"
+  },
+  "Logo": {
+   "colours": 2,
+   "detail": "ink=3032",
+   "ink": 3032,
+   "outcome": "full lifecycle"
+  },
+  "Lunatic Fringe": {
+   "colours": 13,
+   "detail": "ink=8224",
+   "ink": 8224,
+   "outcome": "full lifecycle"
+  },
+  "Major Metaphysical Appliances": {
+   "colours": 17,
+   "detail": "ink=59913",
+   "ink": 59913,
+   "outcome": "full lifecycle"
+  },
+  "Mandelbrot": {
+   "colours": 86,
+   "detail": "ink=10661",
+   "ink": 10661,
+   "outcome": "full lifecycle"
+  },
+  "Marbles": {
+   "colours": 1,
+   "detail": "(no message)",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Meadow": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Message Mayhem": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Messages": {
+   "colours": 1,
+   "detail": "$A9D2 _TENew",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "Mike's So-called Life": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Mime Hunt": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Modern Art": {
+   "colours": 4,
+   "detail": "ink=41410",
+   "ink": 41410,
+   "outcome": "full lifecycle"
+  },
+  "MonitorSD": {
+   "colours": 1,
+   "detail": "$AA03 _NewPixMap",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "Mountains": {
+   "colours": 4,
+   "detail": "ink=35294",
+   "ink": 35294,
+   "outcome": "full lifecycle"
+  },
+  "Movies 'Til Dawn": {
+   "colours": 1,
+   "detail": "Movies 'Til Dawn: QuickTime must be installed",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Mowin' Boris": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Mowin' Man": {
+   "colours": 24,
+   "detail": "ink=880",
+   "ink": 880,
+   "outcome": "full lifecycle"
+  },
+  "MultiModule": {
+   "colours": 1,
+   "detail": "MultiModule:  A file error occurred.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "NightLines": {
+   "colours": 4,
+   "detail": "ink=20312",
+   "ink": 20312,
+   "outcome": "full lifecycle"
+  },
+  "Nirvana": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Nocturnes": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Nonsense": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "PICS Player": {
+   "colours": 1,
+   "detail": "PICS Player: Couldn't find selected PICS file",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Pearls": {
+   "colours": 5,
+   "detail": "ink=159971",
+   "ink": 159971,
+   "outcome": "full lifecycle"
+  },
+  "Phlegm Boy": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Photon": {
+   "colours": 1,
+   "detail": "$A058 _InsTime",
+   "ink": 0,
+   "outcome": "needs trap"
+  },
+  "Picture Frame": {
+   "colours": 1,
+   "detail": "Picture Frame: Current picture can't be found.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "ProtoToasters": {
+   "colours": 2,
+   "detail": "ink=1504",
+   "ink": 1504,
+   "outcome": "full lifecycle"
+  },
+  "Punchout": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Puzzle": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Rain": {
+   "colours": 2,
+   "detail": "ink=43",
+   "ink": 43,
+   "outcome": "full lifecycle"
+  },
+  "Rainstorm": {
+   "colours": 31,
+   "detail": "ink=16284",
+   "ink": 16284,
+   "outcome": "full lifecycle"
+  },
+  "Randomizer": {
+   "colours": 1,
+   "detail": "(no message)",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Rat Race": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Ripple": {
+   "colours": 55,
+   "detail": "ink=95184",
+   "ink": 95184,
+   "outcome": "full lifecycle"
+  },
+  "Rose": {
+   "colours": 2,
+   "detail": "ink=4",
+   "ink": 4,
+   "outcome": "full lifecycle"
+  },
+  "Satori": {
+   "colours": 145,
+   "detail": "ink=302528",
+   "ink": 302528,
+   "outcome": "full lifecycle"
+  },
+  "Say What_": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Shapes": {
+   "colours": 15,
+   "detail": "ink=52734",
+   "ink": 52734,
+   "outcome": "full lifecycle"
+  },
+  "Shock Clocks": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "ShutDownSD": {
+   "colours": 2,
+   "detail": "ink=498",
+   "ink": 498,
+   "outcome": "full lifecycle"
+  },
+  "Slide Show": {
+   "colours": 1,
+   "detail": "Slide Show: No picture has been selected",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Snake": {
+   "colours": 4,
+   "detail": "ink=19719",
+   "ink": 19719,
+   "outcome": "full lifecycle"
+  },
+  "Spheres": {
+   "colours": 5,
+   "detail": "ink=2712",
+   "ink": 2712,
+   "outcome": "full lifecycle"
+  },
+  "Spin Brush": {
+   "colours": 2,
+   "detail": "ink=4921",
+   "ink": 4921,
+   "outcome": "full lifecycle"
+  },
+  "Spiral Gyra": {
+   "colours": 28,
+   "detail": "ink=190067",
+   "ink": 190067,
+   "outcome": "full lifecycle"
+  },
+  "Spotlight": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Stained Glass": {
+   "colours": 5,
+   "detail": "ink=12012",
+   "ink": 12012,
+   "outcome": "full lifecycle"
+  },
+  "Starry Skyline": {
+   "colours": 21,
+   "detail": "ink=46",
+   "ink": 46,
+   "outcome": "full lifecycle"
+  },
+  "Strange Attractors": {
+   "colours": 21,
+   "detail": "ink=563",
+   "ink": 563,
+   "outcome": "full lifecycle"
+  },
+  "String Art": {
+   "colours": 18,
+   "detail": "ink=46819",
+   "ink": 46819,
+   "outcome": "full lifecycle"
+  },
+  "String Theory": {
+   "colours": 7,
+   "detail": "ink=18676",
+   "ink": 18676,
+   "outcome": "full lifecycle"
+  },
+  "SunBurst": {
+   "colours": 5,
+   "detail": "ink=218626",
+   "ink": 218626,
+   "outcome": "full lifecycle"
+  },
+  "Supernova": {
+   "colours": 20,
+   "detail": "ink=1350",
+   "ink": 1350,
+   "outcome": "full lifecycle"
+  },
+  "Terraform": {
+   "colours": 1,
+   "detail": "ink=0",
+   "ink": 0,
+   "outcome": "full lifecycle"
+  },
+  "Toxic Swamp": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Tunnel": {
+   "colours": 84,
+   "detail": "ink=43234",
+   "ink": 43234,
+   "outcome": "full lifecycle"
+  },
+  "Vertigo": {
+   "colours": 4,
+   "detail": "ink=3389",
+   "ink": 3389,
+   "outcome": "full lifecycle"
+  },
+  "Voyeur": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Warp!": {
+   "colours": 2,
+   "detail": "ink=232",
+   "ink": 232,
+   "outcome": "full lifecycle"
+  },
+  "You Bet Your Head": {
+   "colours": 1,
+   "detail": ": This module requires After Dark 3.0 or later.",
+   "ink": 0,
+   "outcome": "declines"
+  },
+  "Zooommm!": {
+   "colours": 3,
+   "detail": "ink=1271",
+   "ink": 1271,
+   "outcome": "full lifecycle"
+  },
+  "Zot!": {
+   "colours": 2,
+   "detail": "ink=1095",
+   "ink": 1095,
+   "outcome": "full lifecycle"
+  }
+ }
+}

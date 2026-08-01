@@ -1,0 +1,22 @@
+[package]
+name = "ad-host-v2"
+description = "After Dark 2.x host ABI: module lifecycle, param block, and the Pascal call."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ad-m68k = { path = "../ad-m68k" }
+ad-memory = { path = "../ad-memory" }
+ad-resource = { path = "../ad-resource" }
+ad-toolbox = { path = "../ad-toolbox" }
+
+# `run_module` is the compatibility lab: it renders the mixer's output to a WAV
+# but deliberately never opens an audio device, so nothing about a machine's
+# sound hardware can affect a 66-module survey.
+[dev-dependencies]
+ad-runtime = { path = "../ad-runtime" }
+
+[lints]
+workspace = true

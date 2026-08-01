@@ -1,0 +1,20 @@
+[package]
+name = "ad-m68k"
+description = "Motorola 68000 CPU for the After Dark runtime, backed by Musashi."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+[build-dependencies]
+cc = "1"
+
+[lints.rust]
+# FFI to the vendored C core requires unsafe. It is confined to the `ffi` module
+# and the `extern "C"` callback shims; the public API is safe.
+unsafe_code = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

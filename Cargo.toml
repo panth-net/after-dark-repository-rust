@@ -1,0 +1,57 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/ad-resource",
+    "crates/ad-keystate",
+    "crates/ad-m68k",
+    "crates/ad-memory",
+    "crates/ad-toolbox",
+    "crates/ad-runtime",
+    "crates/ad-host-v2",
+    "crates/ad-player",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# The Rust code only. The vendored C under `crates/ad-m68k/vendor/` carries its
+# own notices, and the modules and fonts are Berkeley Systems' and Apple's,
+# neither of which ships here — see LICENSE.
+license = "MIT"
+repository = "https://github.com/panth-net/after-dark-repository-rust"
+rust-version = "1.85"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# `indexing_slicing` and `arithmetic_side_effects` are enabled per-crate, not
+# here. They earn their keep in `ad-resource`, which parses untrusted resource
+# forks. Applied workspace-wide they fire on rasteriser and emulator arithmetic
+# where overflow is unreachable, and the noise trains you to add blanket allows.
+
+# The profile the lab measures with.
+#
+# The survey used to run a debug build, and that one choice produced two false
+# results at once. Mandelbrot was filed as a 240-second **timeout** when it
+# finishes in 0.17s optimised — debug is 2,200x slower here, not the 10x I had
+# assumed, because Musashi's C core and every bus callback are unoptimised and
+# the instruction hook fires per instruction. Meanwhile the debug build was the
+# only thing catching arithmetic overflow, and it earned that keep: Pearls
+# painted an oval whose scanline width overflowed `i32`, which aborted in debug
+# and silently drew the wrong ellipse in release.
+#
+# So neither build was the right instrument. This one is optimised *and* keeps
+# the arithmetic checks, which is what makes an overflow a 0.2-second failure
+# instead of a six-minute one. Emulated cycle counts do not depend on host
+# optimisation, so this measures exactly what debug measured.
+#
+# The shipped product uses plain `release`: a screen saver should not abort in
+# front of someone because a rasteriser overflowed. The lab is where that must
+# be loud.
+[profile.lab]
+inherits = "release"
+overflow-checks = true
+debug-assertions = true

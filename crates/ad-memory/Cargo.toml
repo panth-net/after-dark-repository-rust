@@ -1,0 +1,12 @@
+[package]
+name = "ad-memory"
+description = "Emulated Macintosh address space and Memory Manager for the After Dark runtime."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true

@@ -1,0 +1,26 @@
+[package]
+name = "ad-runtime"
+description = "Host-side policy for the After Dark runtime: options, save locations, durable resource writes."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[features]
+# The compatibility lab has no business opening an audio device: 66 modules run
+# headless in CI, and linking a sound backend there is a way for the build to
+# fail for reasons unrelated to any module. Product hosts turn this on.
+default = []
+audio = ["dep:cpal"]
+
+[dependencies]
+ad-resource = { path = "../ad-resource" }
+ad-toolbox = { path = "../ad-toolbox" }
+cpal = { version = "0.15", optional = true }
+
+[dev-dependencies]
+ad-m68k = { path = "../ad-m68k" }
+ad-memory = { path = "../ad-memory" }
+
+[lints]
+workspace = true

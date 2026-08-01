@@ -1,0 +1,46 @@
+# --- Original media, firmware, and third-party SDK archives: never committed ---
+# Apple ROMs, Berkeley Systems' modules and SDKs, and disk images are someone
+# else's copyrighted material. The whole folder is a local-only cache so they
+# don't have to be re-downloaded or re-extracted — see "Getting the original
+# assets" in docs/technical-notes.md for how to reconstitute it.
+/reference/
+*.ROM
+Old_World_Mac_Roms.zip
+New_World_Mac_Roms.zip
+
+# The source disk image and anything extracted from it.
+AfterDark-original.img
+*.img
+!fixtures/**/*.img
+
+# Extracted original assets and generated module packs. No exceptions, and no
+# whitelist below this line: the modules and fonts are Berkeley Systems' and
+# Apple's, and the app imports them from the user's own disk at first launch
+# rather than carrying them.
+/modules/
+**/forks/
+*.rsrc
+
+# Oracle captures (large, regenerable; commit hashes not frames).
+/tests/oracle/captures/
+
+# --- Build output ---
+# dist/ is where make_app.sh and make_dist.sh leave their output locally. The
+# published downloads are GitHub Release assets, built by
+# .github/workflows/release.yml on a version tag — a binary is a pure function
+# of the commit it came from, so it does not belong in history.
+/dist/
+/target/
+node_modules/
+.DS_Store
+
+# --- Scratch ---
+*.pyc
+__pycache__/
+
+trapscan.json
+repomix-output.xml
+
+# Disc images: Berkeley Systems' software, not this project's.
+*.iso
+*.iso.zip

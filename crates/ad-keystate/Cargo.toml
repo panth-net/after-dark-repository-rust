@@ -1,0 +1,17 @@
+[package]
+name = "ad-keystate"
+description = "The physical keyboard, read the way the Mac's `GetKeys` read it."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+# Deliberately *not* `workspace = true`. The workspace forbids `unsafe_code`, and
+# the whole reason this crate exists is to hold the two FFI declarations nothing
+# else is allowed to make — in twenty lines, with no state, so that the forbid
+# stays on everywhere it is doing real work. See the module docs.
+[lints.rust]
+missing_debug_implementations = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
